@@ -1,0 +1,20 @@
+{
+  "name": "scooter-sync-api",
+  "version": "1.0.0",
+  "description": "Zero-login scooter sync & insights REST API (Express + MongoDB, Vercel-ready)",
+  "main": "src/server.js",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "mongoose": "^8.5.1",
+    "zod": "^3.23.8"
+  }
+}
