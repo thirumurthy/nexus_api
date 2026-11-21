@@ -3,7 +3,7 @@ const { z } = require('zod');
 const syncSchema = z.object({
   device_id: z.string().min(8).max(100),
   sync_timestamp: z.number().int().positive(),
-  trigger: z.enum(['DISCONNECT', 'PERIODIC', 'MANUAL']).default('DISCONNECT'),
+  trigger: z.enum(['DISCONNECT', 'CONNECT', 'PERIODIC', 'MANUAL']).default('DISCONNECT'),
   odometer_km: z.number().min(0).max(1000000),
   trip_km: z.number().min(0).max(2000).default(0),
   soc_percent: z.number().min(0).max(100),
