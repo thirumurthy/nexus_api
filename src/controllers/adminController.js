@@ -289,8 +289,8 @@ exports.updateName = async (req, res, next) => {
 let cachedHtml = null;
 exports.renderDashboard = (req, res) => {
   try {
-    if (!cachedHtml) {
-      const htmlPath = path.join(__dirname, '../views/dashboard.html');
+    const htmlPath = path.join(__dirname, '../views/dashboard.html');
+    if (!cachedHtml || process.env.NODE_ENV !== 'production') {
       if (fs.existsSync(htmlPath)) {
         cachedHtml = fs.readFileSync(htmlPath, 'utf8');
       }

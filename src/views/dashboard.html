@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nexus Scooter Fleet | Admin & Insights Dashboard</title>
-  <!-- Google Fonts: Inter -->
+  <!-- Google Fonts: Inter & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -59,9 +59,13 @@
       background: #4b5563;
     }
     .card-glass {
-      background: rgba(17, 24, 39, 0.75);
+      background: rgba(17, 24, 39, 0.85);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .modal-backdrop {
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
     }
   </style>
 </head>
@@ -78,7 +82,7 @@
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-lg font-bold tracking-tight text-white">Nexus Fleet Insights</h1>
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">Live</span>
+          <span id="connStatusBadge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">Live</span>
         </div>
         <p class="text-xs text-gray-400">Zero-login electric vehicle sync & travel analytics</p>
       </div>
@@ -96,8 +100,8 @@
       </div>
 
       <!-- API Key Modal Trigger -->
-      <button id="apiKeyBtn" onclick="toggleApiKeyModal()"
-        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 transition">
+      <button id="apiKeyBtn" type="button" onclick="openApiKeyModal()"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 transition cursor-pointer">
         <svg class="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
         </svg>
@@ -105,8 +109,8 @@
       </button>
 
       <!-- Refresh Button -->
-      <button onclick="refreshAllData()"
-        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-sm transition">
+      <button type="button" onclick="refreshAllData()"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-sm transition cursor-pointer">
         <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
@@ -305,56 +309,83 @@
 
   </main>
 
+  <!-- MODAL: CONFIGURE API KEY -->
+  <div id="apiKeyModal" style="display: none;" class="modal-backdrop fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="card-glass border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-xl bg-yellow-500/15 text-yellow-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+          </span>
+          <div>
+            <h3 class="text-base font-bold text-white">Admin API Key Required</h3>
+            <p class="text-[11px] text-gray-400">Authenticate to access fleet telemetry</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeApiKeyModal()" class="text-gray-400 hover:text-white text-xl p-1 leading-none">&times;</button>
+      </div>
+
+      <!-- Inline Alert Box (Dynamic error messages) -->
+      <div id="apiKeyErrorMsg" style="display: none;" class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+        <svg class="w-4 h-4 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="apiKeyErrorText">Invalid API key. Please check and try again.</span>
+      </div>
+
+      <p class="text-xs text-gray-300 mb-4 leading-relaxed">
+        Enter the <code class="text-emerald-400 font-mono bg-gray-900 px-1.5 py-0.5 rounded border border-gray-800">API_KEY</code> configured in your environment. It will be stored in your browser's <code class="text-gray-300 font-mono bg-gray-900 px-1 py-0.5 rounded">localStorage</code> and attached automatically to requests.
+      </p>
+
+      <div class="space-y-1.5 mb-5">
+        <label class="text-xs font-semibold text-gray-300">API Key String</label>
+        <input id="apiKeyInput" type="password" placeholder="Paste your API key here..."
+          onkeydown="if(event.key === 'Enter') saveApiKey()"
+          class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 font-mono transition" />
+      </div>
+
+      <div class="flex items-center justify-between gap-2.5 pt-2 border-t border-gray-800/80">
+        <button type="button" onclick="clearApiKey()" class="px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition cursor-pointer">
+          Clear Key
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeApiKeyModal()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition cursor-pointer">
+            Cancel
+          </button>
+          <button type="button" id="saveKeyBtn" onclick="saveApiKey()" class="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl shadow-lg shadow-brand-500/20 transition cursor-pointer flex items-center gap-1.5">
+            <span>Save & Connect</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: EDIT SCOOTER NAME -->
-  <div id="editNameModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="card-glass border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+  <div id="editNameModal" style="display: none;" class="modal-backdrop fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="card-glass border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-base font-bold text-white">Assign Rider / Scooter Name</h3>
-        <button onclick="closeEditNameModal()" class="text-gray-400 hover:text-white">&times;</button>
+        <button type="button" onclick="closeEditNameModal()" class="text-gray-400 hover:text-white text-xl p-1 leading-none">&times;</button>
       </div>
       <p class="text-xs text-gray-400 mb-4">Give this scooter a friendly label (e.g., "Thiru's Ather 450X" or "Office Commuter").</p>
       <input type="hidden" id="editModalDeviceKey" />
       <div class="space-y-1.5 mb-5">
         <label class="text-xs font-medium text-gray-300">Name / Label</label>
         <input id="editModalNameInput" type="text" placeholder="e.g. John's Scooter"
-          class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500" />
+          onkeydown="if(event.key === 'Enter') saveScooterName()"
+          class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500" />
       </div>
       <div class="flex items-center justify-end gap-2.5">
-        <button onclick="closeEditNameModal()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 rounded-xl transition">Cancel</button>
-        <button onclick="saveScooterName()" class="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl shadow transition">Save Name</button>
+        <button type="button" onclick="closeEditNameModal()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 rounded-xl transition cursor-pointer">Cancel</button>
+        <button type="button" onclick="saveScooterName()" class="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl shadow transition cursor-pointer">Save Name</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: CONFIGURE API KEY -->
-  <div id="apiKeyModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="card-glass border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2">
-          <span class="p-1.5 rounded-lg bg-yellow-500/10 text-yellow-400">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-          </span>
-          <h3 class="text-base font-bold text-white">Admin API Key Configuration</h3>
-        </div>
-        <button onclick="toggleApiKeyModal()" class="text-gray-400 hover:text-white text-lg">&times;</button>
-      </div>
-      <p class="text-xs text-gray-400 mb-4">If your API requires an <code class="text-gray-300 font-mono bg-gray-800 px-1 py-0.5 rounded">API_KEY</code>, enter it below. It is stored securely in your browser's <code class="text-gray-300 font-mono bg-gray-800 px-1 py-0.5 rounded">localStorage</code> and sent as <code class="text-gray-300 font-mono bg-gray-800 px-1 py-0.5 rounded">x-api-key</code>.</p>
-      
-      <div class="space-y-1.5 mb-5">
-        <label class="text-xs font-medium text-gray-300">API Key</label>
-        <input id="apiKeyInput" type="password" placeholder="Enter API Key (leave empty if disabled)"
-          class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 font-mono" />
-      </div>
-
-      <div class="flex items-center justify-between gap-2.5">
-        <button onclick="clearApiKey()" class="px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 rounded-xl transition">Clear Key</button>
-        <div class="flex items-center gap-2">
-          <button onclick="toggleApiKeyModal()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 rounded-xl transition">Cancel</button>
-          <button onclick="saveApiKey()" class="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl shadow transition">Save & Apply</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
@@ -365,8 +396,37 @@
     let distributionChartInstance = null;
     let modesChartInstance = null;
     let userChartInstance = null;
+    let isAuthModalOpen = false;
 
-    // API Key Helper
+    // Toast notifications (replaces blocking alert dialogs)
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl text-xs font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${
+        type === 'success' ? 'bg-brand-600 text-white' :
+        type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-200 border border-gray-700'
+      }`;
+
+      const icon = type === 'success'
+        ? `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+        : type === 'error'
+        ? `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`
+        : `<svg class="w-4 h-4 shrink-0 text-electric-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+
+      toast.innerHTML = `${icon}<span>${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // API Key Storage & Helpers
     function getApiKey() {
       return localStorage.getItem('nexus_admin_api_key') || '';
     }
@@ -381,45 +441,113 @@
     function updateApiKeyButtonUI() {
       const key = getApiKey();
       const statusText = document.getElementById('apiKeyStatusText');
+      const badge = document.getElementById('connStatusBadge');
+
       if (key) {
         statusText.textContent = 'Key Active';
         statusText.className = 'text-brand-400 font-semibold';
+        if (badge) {
+          badge.textContent = 'Connected';
+          badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20';
+        }
       } else {
-        statusText.textContent = 'API Key';
-        statusText.className = 'text-gray-300';
+        statusText.textContent = 'Enter API Key';
+        statusText.className = 'text-yellow-400 font-medium';
+        if (badge) {
+          badge.textContent = 'Key Required';
+          badge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+        }
       }
     }
 
-    function toggleApiKeyModal() {
+    // Modal Control Functions (using direct display styling for 100% reliability)
+    function openApiKeyModal(errorMessage = null) {
       const modal = document.getElementById('apiKeyModal');
-      const isHidden = modal.classList.contains('hidden');
-      if (isHidden) {
-        document.getElementById('apiKeyInput').value = getApiKey();
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+      const input = document.getElementById('apiKeyInput');
+      const errBox = document.getElementById('apiKeyErrorMsg');
+      const errText = document.getElementById('apiKeyErrorText');
+
+      input.value = getApiKey();
+
+      if (errorMessage) {
+        errText.textContent = errorMessage;
+        errBox.style.display = 'flex';
       } else {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        errBox.style.display = 'none';
       }
+
+      modal.style.display = 'flex';
+      isAuthModalOpen = true;
+      setTimeout(() => input.focus(), 60);
     }
 
-    function saveApiKey() {
-      const val = document.getElementById('apiKeyInput').value.trim();
-      if (val) {
-        localStorage.setItem('nexus_admin_api_key', val);
-      } else {
-        localStorage.removeItem('nexus_admin_api_key');
+    function closeApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      modal.style.display = 'none';
+      document.getElementById('apiKeyErrorMsg').style.display = 'none';
+      isAuthModalOpen = false;
+    }
+
+    async function saveApiKey() {
+      const input = document.getElementById('apiKeyInput');
+      const key = input.value.trim();
+
+      if (!key) {
+        const errBox = document.getElementById('apiKeyErrorMsg');
+        const errText = document.getElementById('apiKeyErrorText');
+        errText.textContent = 'Please enter an API Key string.';
+        errBox.style.display = 'flex';
+        input.focus();
+        return;
       }
-      toggleApiKeyModal();
-      updateApiKeyButtonUI();
-      refreshAllData();
+
+      const btn = document.getElementById('saveKeyBtn');
+      btn.innerHTML = `<svg class="animate-spin h-3.5 w-3.5 text-white mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Validating...`;
+
+      try {
+        // Test key with API endpoint
+        const testRes = await fetch('/api/admin/overview', {
+          headers: { 'Accept': 'application/json', 'x-api-key': key }
+        });
+
+        if (testRes.status === 401) {
+          btn.innerHTML = `<span>Save & Connect</span>`;
+          const errBox = document.getElementById('apiKeyErrorMsg');
+          const errText = document.getElementById('apiKeyErrorText');
+          errText.textContent = 'Invalid API Key. Please verify against your Vercel API_KEY environment variable.';
+          errBox.style.display = 'flex';
+          input.focus();
+          return;
+        }
+
+        // Key is valid! Save to localStorage
+        localStorage.setItem('nexus_admin_api_key', key);
+        updateApiKeyButtonUI();
+        closeApiKeyModal();
+        showToast('API Key saved! Loading fleet insights...', 'success');
+
+        const json = await testRes.json();
+        if (json.status === 'success') {
+          handleOverviewData(json.data);
+          fetchScooters(document.getElementById('scooterFilterInput').value);
+        }
+      } catch (err) {
+        // Network fallback: still store key and attempt refresh
+        localStorage.setItem('nexus_admin_api_key', key);
+        updateApiKeyButtonUI();
+        closeApiKeyModal();
+        refreshAllData();
+      } finally {
+        btn.innerHTML = `<span>Save & Connect</span>`;
+      }
     }
 
     function clearApiKey() {
       localStorage.removeItem('nexus_admin_api_key');
       document.getElementById('apiKeyInput').value = '';
-      toggleApiKeyModal();
       updateApiKeyButtonUI();
+      closeApiKeyModal();
+      showToast('API Key removed from local storage', 'info');
       refreshAllData();
     }
 
@@ -458,39 +586,50 @@
       </span>`;
     }
 
+    // Handle Overview JSON
+    function handleOverviewData(data) {
+      const fleet = data.fleet;
+      const savings = data.savings;
+
+      document.getElementById('statTotalScooters').textContent = formatNumber(fleet.total_scooters);
+      document.getElementById('statActive7d').textContent = formatNumber(fleet.active_7d);
+      document.getElementById('statTotalOdometer').textContent = formatNumber(fleet.total_odometer_km) + ' km';
+      document.getElementById('statTotalTracked').textContent = formatNumber(fleet.total_tracked_km) + ' km';
+      document.getElementById('statMoneySaved').textContent = '₹ ' + formatNumber(savings.money_saved_inr);
+      document.getElementById('statPetrolSaved').textContent = formatNumber(savings.petrol_saved_liters) + ' L';
+      document.getElementById('statCo2Saved').textContent = formatNumber(savings.co2_saved_kg) + ' kg';
+      document.getElementById('statAvgDailyKm').textContent = formatKm(fleet.avg_daily_km);
+      document.getElementById('statFleetEfficiency').textContent = fleet.fleet_km_per_soc ? `${fleet.fleet_km_per_soc} km/%` : '-- km/%';
+      document.getElementById('statEstFullRange').textContent = fleet.estimated_full_range_km ? `${fleet.estimated_full_range_km} km` : '-- km';
+
+      document.getElementById('lastUpdatedBadge').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+
+      renderTrendChart(data.trend);
+      renderDistributionChart(data.travel_patterns.trip_distance_distribution);
+      renderModesChart(data.travel_patterns.riding_modes);
+    }
+
     // Fetch Fleet Overview
     async function fetchOverview() {
       try {
         const res = await fetch('/api/admin/overview', { headers: getFetchHeaders() });
         if (res.status === 401) {
-          alert('API Key authentication required. Please click "API Key" in the top bar to enter your key.');
-          return;
+          updateApiKeyButtonUI();
+          // Open the modal directly without intrusive browser alert()
+          if (!isAuthModalOpen) {
+            openApiKeyModal('API Key authentication required. Please enter your key below to view data.');
+          }
+          return false;
         }
+
         const json = await res.json();
-        if (json.status !== 'success') return;
+        if (json.status !== 'success') return false;
 
-        const data = json.data;
-        const fleet = data.fleet;
-        const savings = data.savings;
-
-        document.getElementById('statTotalScooters').textContent = formatNumber(fleet.total_scooters);
-        document.getElementById('statActive7d').textContent = formatNumber(fleet.active_7d);
-        document.getElementById('statTotalOdometer').textContent = formatNumber(fleet.total_odometer_km) + ' km';
-        document.getElementById('statTotalTracked').textContent = formatNumber(fleet.total_tracked_km) + ' km';
-        document.getElementById('statMoneySaved').textContent = '₹ ' + formatNumber(savings.money_saved_inr);
-        document.getElementById('statPetrolSaved').textContent = formatNumber(savings.petrol_saved_liters) + ' L';
-        document.getElementById('statCo2Saved').textContent = formatNumber(savings.co2_saved_kg) + ' kg';
-        document.getElementById('statAvgDailyKm').textContent = formatKm(fleet.avg_daily_km);
-        document.getElementById('statFleetEfficiency').textContent = fleet.fleet_km_per_soc ? `${fleet.fleet_km_per_soc} km/%` : '-- km/%';
-        document.getElementById('statEstFullRange').textContent = fleet.estimated_full_range_km ? `${fleet.estimated_full_range_km} km` : '-- km';
-
-        document.getElementById('lastUpdatedBadge').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-
-        renderTrendChart(data.trend);
-        renderDistributionChart(data.travel_patterns.trip_distance_distribution);
-        renderModesChart(data.travel_patterns.riding_modes);
+        handleOverviewData(json.data);
+        return true;
       } catch (err) {
         console.error('Error fetching overview:', err);
+        return false;
       }
     }
 
@@ -613,6 +752,8 @@
       try {
         const url = searchQuery ? `/api/admin/scooters?search=${encodeURIComponent(searchQuery)}` : '/api/admin/scooters';
         const res = await fetch(url, { headers: getFetchHeaders() });
+        if (res.status === 401) return;
+
         const json = await res.json();
         if (json.status !== 'success') return;
 
@@ -624,7 +765,6 @@
         if (!selectedDeviceKey && currentScooters.length > 0) {
           selectScooter(currentScooters[0].device_key);
         } else if (selectedDeviceKey) {
-          // Re-highlight
           highlightSelectedScooterItem();
         }
       } catch (err) {
@@ -636,7 +776,7 @@
     function renderScooterList() {
       const container = document.getElementById('scooterListContainer');
       if (!currentScooters.length) {
-        container.innerHTML = `<div class="p-8 text-center text-gray-500 text-xs">No scooters registered yet.<br/>Perform a sync from your mobile app to populate data!</div>`;
+        container.innerHTML = `<div class="p-8 text-center text-gray-500 text-xs">No scooters found.<br/>Sync from your mobile app to register vehicles.</div>`;
         return;
       }
 
@@ -708,7 +848,7 @@
         const res = await fetch(`/api/admin/scooter/${encodeURIComponent(deviceKey)}`, { headers: getFetchHeaders() });
         const json = await res.json();
         if (json.status !== 'success') {
-          detailContainer.innerHTML = `<div class="p-8 text-center text-red-400 text-xs">Failed to load scooter: ${json.message}</div>`;
+          detailContainer.innerHTML = `<div class="p-8 text-center text-red-400 text-xs">Failed to load scooter: ${json.message || 'Unauthorized'}</div>`;
           return;
         }
 
@@ -741,8 +881,8 @@
           <div>
             <div class="flex items-center gap-2">
               <h2 class="text-xl font-extrabold text-white tracking-tight">${displayName}</h2>
-              <button onclick="openEditNameModal('${s.device_key}', '${encodeURIComponent(s.name || '')}')"
-                class="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-brand-400 transition" title="Edit Scooter Name">
+              <button type="button" onclick="openEditNameModal('${s.device_key}', '${encodeURIComponent(s.name || '')}')"
+                class="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-brand-400 transition cursor-pointer" title="Edit Scooter Name">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
               </button>
             </div>
@@ -926,14 +1066,13 @@
       document.getElementById('editModalDeviceKey').value = deviceKey;
       document.getElementById('editModalNameInput').value = decodeURIComponent(currentNameEncoded);
       const modal = document.getElementById('editNameModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      modal.style.display = 'flex';
+      setTimeout(() => document.getElementById('editModalNameInput').focus(), 50);
     }
 
     function closeEditNameModal() {
       const modal = document.getElementById('editNameModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      modal.style.display = 'none';
     }
 
     async function saveScooterName() {
@@ -953,16 +1092,17 @@
         const json = await res.json();
         if (json.status === 'success') {
           closeEditNameModal();
+          showToast(`Name saved as "${name || 'Unnamed'}"`, 'success');
           // Update in local array
           const item = currentScooters.find(s => s.device_key === deviceKey);
           if (item) item.name = name;
           renderScooterList();
           selectScooter(deviceKey);
         } else {
-          alert('Failed to update name: ' + (json.message || 'Unknown error'));
+          showToast('Failed to update name: ' + (json.message || 'Unknown error'), 'error');
         }
       } catch (err) {
-        alert('Network error saving name: ' + err.message);
+        showToast('Network error saving name: ' + err.message, 'error');
       }
     }
 
@@ -971,10 +1111,10 @@
       const icon = document.getElementById('refreshIcon');
       if (icon) icon.classList.add('animate-spin');
 
-      await Promise.all([
-        fetchOverview(),
-        fetchScooters(document.getElementById('scooterFilterInput').value)
-      ]);
+      const overviewOk = await fetchOverview();
+      if (overviewOk) {
+        await fetchScooters(document.getElementById('scooterFilterInput').value);
+      }
 
       if (icon) icon.classList.remove('animate-spin');
     }
@@ -992,11 +1132,19 @@
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
       updateApiKeyButtonUI();
-      refreshAllData();
 
-      // Periodic auto-refresh every 30s
-      setInterval(() => {
+      // If no API Key is in localStorage, open modal immediately to ask for input
+      if (!getApiKey()) {
+        openApiKeyModal();
+      } else {
         refreshAllData();
+      }
+
+      // Periodic auto-refresh every 30s only if auth is healthy
+      setInterval(() => {
+        if (getApiKey() && !isAuthModalOpen) {
+          refreshAllData();
+        }
       }, 30000);
     });
   </script>
