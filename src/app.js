@@ -10,18 +10,10 @@ const app = express();
 
 app.disable('x-powered-by');
 
-// Configure Helmet with CSP allowing Tailwind, Google Fonts, and Chart.js CDNs
+// Disable CSP so admin dashboard, external CDNs, charts, and event handlers are never blocked
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdn.tailwindcss.com'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https:']
-      }
-    }
+    contentSecurityPolicy: false
   })
 );
 
@@ -41,7 +33,7 @@ app.get('/', (req, res) => {
 
 // Ensure DB is connected for API endpoints (cached across serverless invocations)
 app.use('/api', async (req, res, next) => {
-  if (req.path === '/health' || req.path === '/admin' || req.path === '/dashboard') return next();
+  if (req.path === '/health' || req.path === '/admin' || req.path === '/dashboard' || req.path === '/admin/auth-test') return next();
   try {
     await connectDB();
     next();
