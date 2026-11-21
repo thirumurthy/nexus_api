@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Scooter Fleet | Admin & Insights Dashboard</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d'
+            },
+            electric: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+    .card-glass {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="card-glass sticky top-0 z-40 border-b border-gray-800 px-4 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-electric-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-bold tracking-tight text-white">Nexus Fleet Insights</h1>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">Live</span>
+        </div>
+        <p class="text-xs text-gray-400">Zero-login electric vehicle sync & travel analytics</p>
+      </div>
+    </div>
+
+    <!-- Actions & Settings -->
+    <div class="flex items-center gap-2.5">
+      <!-- Search Quick Input -->
+      <div class="relative w-48 sm:w-64">
+        <input id="navSearch" type="text" placeholder="Search device or user..."
+          class="w-full bg-gray-900/80 border border-gray-700/80 rounded-lg pl-8 pr-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500 transition-colors" />
+        <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      <!-- API Key Modal Trigger -->
+      <button id="apiKeyBtn" onclick="toggleApiKeyModal()"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 transition">
+        <svg class="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+        </svg>
+        <span id="apiKeyStatusText">API Key</span>
+      </button>
+
+      <!-- Refresh Button -->
+      <button onclick="refreshAllData()"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-sm transition">
+        <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 p-4 lg:p-8 max-w-[1600px] mx-auto w-full space-y-6">
+
+    <!-- TOP FLEET METRICS GRID -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400">Fleet Overview & Travel Impact</h2>
+        <span id="lastUpdatedBadge" class="text-xs text-gray-500">Updated: just now</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <!-- Card 1: Total Scooters -->
+        <div class="card-glass rounded-xl p-4 border border-gray-800">
+          <div class="flex items-center justify-between text-gray-400 mb-1">
+            <span class="text-xs font-medium">Registered Fleet</span>
+            <span class="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </span>
+          </div>
+          <div id="statTotalScooters" class="text-2xl font-bold text-white tracking-tight">--</div>
+          <div class="text-[11px] text-gray-400 mt-1">
+            <span id="statActive7d" class="text-brand-400 font-semibold">--</span> active in last 7d
+          </div>
+        </div>
+
+        <!-- Card 2: Total Distance -->
+        <div class="card-glass rounded-xl p-4 border border-gray-800">
+          <div class="flex items-center justify-between text-gray-400 mb-1">
+            <span class="text-xs font-medium">Fleet Distance</span>
+            <span class="p-1.5 rounded-lg bg-brand-500/10 text-brand-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+            </span>
+          </div>
+          <div id="statTotalOdometer" class="text-2xl font-bold text-white tracking-tight">-- km</div>
+          <div class="text-[11px] text-gray-400 mt-1">
+            Tracked in syncs: <span id="statTotalTracked" class="text-gray-300">-- km</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Fuel Savings (Money) -->
+        <div class="card-glass rounded-xl p-4 border border-gray-800">
+          <div class="flex items-center justify-between text-gray-400 mb-1">
+            <span class="text-xs font-medium">Money Saved</span>
+            <span class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <span class="text-xs font-bold">₹</span>
+            </span>
+          </div>
+          <div id="statMoneySaved" class="text-2xl font-bold text-emerald-400 tracking-tight">₹ --</div>
+          <div class="text-[11px] text-gray-400 mt-1">
+            Petrol: <span id="statPetrolSaved" class="text-gray-300">-- L</span> avoided
+          </div>
+        </div>
+
+        <!-- Card 4: CO2 Saved -->
+        <div class="card-glass rounded-xl p-4 border border-gray-800">
+          <div class="flex items-center justify-between text-gray-400 mb-1">
+            <span class="text-xs font-medium">CO2 Offset</span>
+            <span class="p-1.5 rounded-lg bg-teal-500/10 text-teal-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+            </span>
+          </div>
+          <div id="statCo2Saved" class="text-2xl font-bold text-teal-300 tracking-tight">-- kg</div>
+          <div class="text-[11px] text-gray-400 mt-1">
+            Green clean kilometers
+          </div>
+        </div>
+
+        <!-- Card 5: Avg Daily Travel -->
+        <div class="card-glass rounded-xl p-4 border border-gray-800">
+          <div class="flex items-center justify-between text-gray-400 mb-1">
+            <span class="text-xs font-medium">Avg Daily Commute</span>
+            <span class="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+          </div>
+          <div id="statAvgDailyKm" class="text-2xl font-bold text-white tracking-tight">-- km</div>
+          <div class="text-[11px] text-gray-400 mt-1">
+            Per active riding day
+          </div>
+        </div>
+
+        <!-- Card 6: Fleet Efficiency -->
+        <div class="card-glass rounded-xl p-4 border border-gray-800">
+          <div class="flex items-center justify-between text-gray-400 mb-1">
+            <span class="text-xs font-medium">Fleet Efficiency</span>
+            <span class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </span>
+          </div>
+          <div id="statFleetEfficiency" class="text-2xl font-bold text-amber-400 tracking-tight">-- km/%</div>
+          <div class="text-[11px] text-gray-400 mt-1">
+            Est. full range: <span id="statEstFullRange" class="text-gray-300">-- km</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GENERAL HOW USERS TRAVEL (CHARTS SECTION) -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 14-Day Fleet Activity Trend -->
+      <div class="card-glass rounded-2xl p-5 border border-gray-800 lg:col-span-2 flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-white">Fleet Travel Trend (Last 14 Days)</h3>
+            <p class="text-xs text-gray-400">Daily total distance traveled vs. active riders</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs">
+            <span class="flex items-center gap-1.5 text-brand-400"><span class="w-2.5 h-2.5 rounded-full bg-brand-500 inline-block"></span> Distance (km)</span>
+            <span class="flex items-center gap-1.5 text-electric-400"><span class="w-2.5 h-2.5 rounded-full bg-electric-500 inline-block"></span> Active Riders</span>
+          </div>
+        </div>
+        <div class="flex-1 min-h-[220px]">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Travel Habits: Distance Buckets & Riding Modes -->
+      <div class="card-glass rounded-2xl p-5 border border-gray-800 flex flex-col gap-5">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-white">Daily Trip Range Distribution</h3>
+            <span class="text-[11px] text-gray-500">Commute pattern</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-3">How far users ride in a single day</p>
+          <div class="h-[140px]">
+            <canvas id="distributionChart"></canvas>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-800/80 pt-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-white">Popular Riding Modes</h3>
+            <span class="text-[11px] text-gray-500">Preference</span>
+          </div>
+          <div class="h-[120px]">
+            <canvas id="modesChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- USER & SCOOTER EXPLORER SECTION (SPLIT SCREEN) -->
+    <section class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white">User & Scooter Insights Explorer</h2>
+          <p class="text-xs text-gray-400">Select any scooter to view specific rider telemetry, battery health, and travel history</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="scooterCountBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-800 text-gray-300 border border-gray-700">0 Scooters</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- LEFT COLUMN: SCOOTER LIST & SEARCH (4 COLS) -->
+        <div class="lg:col-span-4 card-glass rounded-2xl border border-gray-800 overflow-hidden flex flex-col max-h-[820px]">
+          <!-- Filter Header -->
+          <div class="p-3.5 border-b border-gray-800 bg-gray-900/60 flex items-center gap-2">
+            <div class="relative flex-1">
+              <input id="scooterFilterInput" type="text" placeholder="Filter by Name or Device ID..."
+                class="w-full bg-gray-950/70 border border-gray-700/80 rounded-xl pl-8 pr-3 py-2 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-500 transition-colors" />
+              <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Scooters List -->
+          <div id="scooterListContainer" class="divide-y divide-gray-800/80 overflow-y-auto custom-scrollbar flex-1 p-2 space-y-1.5">
+            <div class="p-8 text-center text-gray-500 text-xs">Loading scooters...</div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: SELECTED USER / SCOOTER DEEP INSIGHTS (8 COLS) -->
+        <div id="scooterDetailContainer" class="lg:col-span-8 card-glass rounded-2xl border border-gray-800 p-6 flex flex-col">
+          <div class="py-16 text-center text-gray-500">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm font-medium text-gray-400">Select a scooter from the list on the left</p>
+            <p class="text-xs text-gray-500 mt-1">View odometer, battery telemetry, travel charts, and maintenance schedule</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: EDIT SCOOTER NAME -->
+  <div id="editNameModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="card-glass border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-white">Assign Rider / Scooter Name</h3>
+        <button onclick="closeEditNameModal()" class="text-gray-400 hover:text-white">&times;</button>
+      </div>
+      <p class="text-xs text-gray-400 mb-4">Give this scooter a friendly label (e.g., "Thiru's Ather 450X" or "Office Commuter").</p>
+      <input type="hidden" id="editModalDeviceKey" />
+      <div class="space-y-1.5 mb-5">
+        <label class="text-xs font-medium text-gray-300">Name / Label</label>
+        <input id="editModalNameInput" type="text" placeholder="e.g. John's Scooter"
+          class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500" />
+      </div>
+      <div class="flex items-center justify-end gap-2.5">
+        <button onclick="closeEditNameModal()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 rounded-xl transition">Cancel</button>
+        <button onclick="saveScooterName()" class="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl shadow transition">Save Name</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURE API KEY -->
+  <div id="apiKeyModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="card-glass border border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <span class="p-1.5 rounded-lg bg-yellow-500/10 text-yellow-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+          </span>
+          <h3 class="text-base font-bold text-white">Admin API Key Configuration</h3>
+        </div>
+        <button onclick="toggleApiKeyModal()" class="text-gray-400 hover:text-white text-lg">&times;</button>
+      </div>
+      <p class="text-xs text-gray-400 mb-4">If your API requires an <code class="text-gray-300 font-mono bg-gray-800 px-1 py-0.5 rounded">API_KEY</code>, enter it below. It is stored securely in your browser's <code class="text-gray-300 font-mono bg-gray-800 px-1 py-0.5 rounded">localStorage</code> and sent as <code class="text-gray-300 font-mono bg-gray-800 px-1 py-0.5 rounded">x-api-key</code>.</p>
+      
+      <div class="space-y-1.5 mb-5">
+        <label class="text-xs font-medium text-gray-300">API Key</label>
+        <input id="apiKeyInput" type="password" placeholder="Enter API Key (leave empty if disabled)"
+          class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500 font-mono" />
+      </div>
+
+      <div class="flex items-center justify-between gap-2.5">
+        <button onclick="clearApiKey()" class="px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 rounded-xl transition">Clear Key</button>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleApiKeyModal()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 rounded-xl transition">Cancel</button>
+          <button onclick="saveApiKey()" class="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl shadow transition">Save & Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // State
+    let currentScooters = [];
+    let selectedDeviceKey = null;
+    let trendChartInstance = null;
+    let distributionChartInstance = null;
+    let modesChartInstance = null;
+    let userChartInstance = null;
+
+    // API Key Helper
+    function getApiKey() {
+      return localStorage.getItem('nexus_admin_api_key') || '';
+    }
+
+    function getFetchHeaders() {
+      const headers = { 'Accept': 'application/json' };
+      const key = getApiKey();
+      if (key) headers['x-api-key'] = key;
+      return headers;
+    }
+
+    function updateApiKeyButtonUI() {
+      const key = getApiKey();
+      const statusText = document.getElementById('apiKeyStatusText');
+      if (key) {
+        statusText.textContent = 'Key Active';
+        statusText.className = 'text-brand-400 font-semibold';
+      } else {
+        statusText.textContent = 'API Key';
+        statusText.className = 'text-gray-300';
+      }
+    }
+
+    function toggleApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      const isHidden = modal.classList.contains('hidden');
+      if (isHidden) {
+        document.getElementById('apiKeyInput').value = getApiKey();
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function saveApiKey() {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      if (val) {
+        localStorage.setItem('nexus_admin_api_key', val);
+      } else {
+        localStorage.removeItem('nexus_admin_api_key');
+      }
+      toggleApiKeyModal();
+      updateApiKeyButtonUI();
+      refreshAllData();
+    }
+
+    function clearApiKey() {
+      localStorage.removeItem('nexus_admin_api_key');
+      document.getElementById('apiKeyInput').value = '';
+      toggleApiKeyModal();
+      updateApiKeyButtonUI();
+      refreshAllData();
+    }
+
+    // Format Helpers
+    function formatKm(val) {
+      if (val == null) return '--';
+      return Number(val).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
+    }
+
+    function formatNumber(val) {
+      if (val == null) return '--';
+      return Number(val).toLocaleString();
+    }
+
+    function timeAgo(timestamp) {
+      if (!timestamp) return 'Never';
+      const seconds = Math.floor((Date.now() - timestamp) / 1000);
+      if (seconds < 60) return 'Just now';
+      const mins = Math.floor(seconds / 60);
+      if (mins < 60) return `${mins}m ago`;
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return `${days}d ago`;
+      return new Date(timestamp).toLocaleDateString();
+    }
+
+    function getBatteryBadge(soc) {
+      if (soc == null) return '<span class="text-gray-500">--%</span>';
+      let colorClass = 'bg-brand-500/20 text-brand-400 border-brand-500/30';
+      if (soc < 20) colorClass = 'bg-red-500/20 text-red-400 border-red-500/30';
+      else if (soc < 50) colorClass = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+      return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${colorClass}">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        ${soc}%
+      </span>`;
+    }
+
+    // Fetch Fleet Overview
+    async function fetchOverview() {
+      try {
+        const res = await fetch('/api/admin/overview', { headers: getFetchHeaders() });
+        if (res.status === 401) {
+          alert('API Key authentication required. Please click "API Key" in the top bar to enter your key.');
+          return;
+        }
+        const json = await res.json();
+        if (json.status !== 'success') return;
+
+        const data = json.data;
+        const fleet = data.fleet;
+        const savings = data.savings;
+
+        document.getElementById('statTotalScooters').textContent = formatNumber(fleet.total_scooters);
+        document.getElementById('statActive7d').textContent = formatNumber(fleet.active_7d);
+        document.getElementById('statTotalOdometer').textContent = formatNumber(fleet.total_odometer_km) + ' km';
+        document.getElementById('statTotalTracked').textContent = formatNumber(fleet.total_tracked_km) + ' km';
+        document.getElementById('statMoneySaved').textContent = '₹ ' + formatNumber(savings.money_saved_inr);
+        document.getElementById('statPetrolSaved').textContent = formatNumber(savings.petrol_saved_liters) + ' L';
+        document.getElementById('statCo2Saved').textContent = formatNumber(savings.co2_saved_kg) + ' kg';
+        document.getElementById('statAvgDailyKm').textContent = formatKm(fleet.avg_daily_km);
+        document.getElementById('statFleetEfficiency').textContent = fleet.fleet_km_per_soc ? `${fleet.fleet_km_per_soc} km/%` : '-- km/%';
+        document.getElementById('statEstFullRange').textContent = fleet.estimated_full_range_km ? `${fleet.estimated_full_range_km} km` : '-- km';
+
+        document.getElementById('lastUpdatedBadge').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+
+        renderTrendChart(data.trend);
+        renderDistributionChart(data.travel_patterns.trip_distance_distribution);
+        renderModesChart(data.travel_patterns.riding_modes);
+      } catch (err) {
+        console.error('Error fetching overview:', err);
+      }
+    }
+
+    // Trend Chart
+    function renderTrendChart(trendData) {
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      const labels = trendData.map(d => d.date.slice(5)); // MM-DD
+      const distances = trendData.map(d => d.total_km);
+      const activeUsers = trendData.map(d => d.active_users);
+
+      trendChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Distance (km)',
+              data: distances,
+              backgroundColor: 'rgba(34, 197, 94, 0.45)',
+              borderColor: 'rgba(34, 197, 94, 1)',
+              borderWidth: 1.5,
+              borderRadius: 6,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Active Riders',
+              data: activeUsers,
+              type: 'line',
+              borderColor: 'rgba(56, 189, 248, 1)',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              borderWidth: 2,
+              pointRadius: 3,
+              tension: 0.3,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: { position: 'left', grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { stepSize: 1, color: '#38bdf8', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // Distance Buckets Distribution Chart
+    function renderDistributionChart(buckets) {
+      const ctx = document.getElementById('distributionChart').getContext('2d');
+      if (distributionChartInstance) distributionChartInstance.destroy();
+
+      const labels = buckets.map(b => b.range);
+      const counts = buckets.map(b => b.count);
+
+      distributionChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            data: counts,
+            backgroundColor: ['#38bdf8', '#22c55e', '#f59e0b', '#a855f7'],
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 9 }, stepSize: 1 } },
+            y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // Modes Chart
+    function renderModesChart(modes) {
+      const ctx = document.getElementById('modesChart').getContext('2d');
+      if (modesChartInstance) modesChartInstance.destroy();
+
+      if (!modes.length) {
+        modes = [{ mode: 'Eco / Ride', count: 1 }];
+      }
+
+      modesChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: modes.map(m => m.mode || 'Default'),
+          datasets: [{
+            data: modes.map(m => m.count),
+            backgroundColor: ['#22c55e', '#0ea5e9', '#eab308', '#ec4899', '#8b5cf6'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { boxWidth: 10, color: '#cbd5e1', font: { size: 10 } }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    }
+
+    // Fetch Scooters List
+    async function fetchScooters(searchQuery = '') {
+      try {
+        const url = searchQuery ? `/api/admin/scooters?search=${encodeURIComponent(searchQuery)}` : '/api/admin/scooters';
+        const res = await fetch(url, { headers: getFetchHeaders() });
+        const json = await res.json();
+        if (json.status !== 'success') return;
+
+        currentScooters = json.scooters;
+        document.getElementById('scooterCountBadge').textContent = `${currentScooters.length} Scooter${currentScooters.length === 1 ? '' : 's'}`;
+        renderScooterList();
+
+        // If nothing selected and we have scooters, auto-select the first one
+        if (!selectedDeviceKey && currentScooters.length > 0) {
+          selectScooter(currentScooters[0].device_key);
+        } else if (selectedDeviceKey) {
+          // Re-highlight
+          highlightSelectedScooterItem();
+        }
+      } catch (err) {
+        console.error('Error fetching scooters:', err);
+      }
+    }
+
+    // Render Scooters in the list
+    function renderScooterList() {
+      const container = document.getElementById('scooterListContainer');
+      if (!currentScooters.length) {
+        container.innerHTML = `<div class="p-8 text-center text-gray-500 text-xs">No scooters registered yet.<br/>Perform a sync from your mobile app to populate data!</div>`;
+        return;
+      }
+
+      container.innerHTML = currentScooters.map(s => {
+        const isSelected = s.device_key === selectedDeviceKey;
+        const displayName = s.name || 'Unnamed Scooter';
+        const shortKey = s.device_key.length > 14 ? `${s.device_key.slice(0, 6)}...${s.device_key.slice(-4)}` : s.device_key;
+
+        return `
+          <div onclick="selectScooter('${s.device_key}')"
+            id="item-${s.device_key}"
+            class="p-3 rounded-xl cursor-pointer transition-all border ${
+              isSelected
+                ? 'bg-brand-500/10 border-brand-500/50 text-white shadow-sm'
+                : 'bg-gray-900/50 hover:bg-gray-800/60 border-gray-800 text-gray-300'
+            }">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold truncate ${isSelected ? 'text-brand-300' : 'text-white'}">${displayName}</span>
+                  ${s.name ? '' : '<span class="text-[10px] text-gray-500 italic">No name</span>'}
+                </div>
+                <div class="text-[11px] font-mono text-gray-400 truncate mt-0.5">ID: ${shortKey}</div>
+              </div>
+              <div>
+                ${getBatteryBadge(s.last_soc)}
+              </div>
+            </div>
+
+            <div class="mt-2.5 pt-2 border-t border-gray-800/80 flex items-center justify-between text-[11px] text-gray-400">
+              <span class="font-medium text-gray-200">🛣️ ${s.last_odometer} km</span>
+              <span>🔋 ${s.last_range_km ? s.last_range_km + ' km' : '--'}</span>
+              <span class="text-gray-500">${timeAgo(s.last_sync_timestamp)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function highlightSelectedScooterItem() {
+      currentScooters.forEach(s => {
+        const el = document.getElementById(`item-${s.device_key}`);
+        if (!el) return;
+        if (s.device_key === selectedDeviceKey) {
+          el.className = 'p-3 rounded-xl cursor-pointer transition-all border bg-brand-500/10 border-brand-500/50 text-white shadow-sm';
+        } else {
+          el.className = 'p-3 rounded-xl cursor-pointer transition-all border bg-gray-900/50 hover:bg-gray-800/60 border-gray-800 text-gray-300';
+        }
+      });
+    }
+
+    // Select Scooter & Fetch Details
+    async function selectScooter(deviceKey) {
+      selectedDeviceKey = deviceKey;
+      highlightSelectedScooterItem();
+
+      const detailContainer = document.getElementById('scooterDetailContainer');
+      detailContainer.innerHTML = `
+        <div class="py-20 text-center text-gray-400">
+          <svg class="animate-spin h-8 w-8 text-brand-500 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p class="text-xs">Fetching telemetry & insights...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`/api/admin/scooter/${encodeURIComponent(deviceKey)}`, { headers: getFetchHeaders() });
+        const json = await res.json();
+        if (json.status !== 'success') {
+          detailContainer.innerHTML = `<div class="p-8 text-center text-red-400 text-xs">Failed to load scooter: ${json.message}</div>`;
+          return;
+        }
+
+        renderScooterDetail(json);
+      } catch (err) {
+        console.error('Error fetching scooter detail:', err);
+        detailContainer.innerHTML = `<div class="p-8 text-center text-red-400 text-xs">Error connecting to server</div>`;
+      }
+    }
+
+    // Render Detailed View
+    function renderScooterDetail(data) {
+      const s = data.scooter;
+      const ins = data.insights.insights || {};
+      const dailyUsage = data.daily_history || [];
+      const syncLogs = data.recent_syncs || [];
+
+      const displayName = s.name || 'Unnamed Scooter';
+      const detailContainer = document.getElementById('scooterDetailContainer');
+
+      // Next Service calculation
+      const odo = s.last_odometer || 0;
+      const nextServ = ins.next_service_km || 1000;
+      const kmUntil = ins.km_until_service || (nextServ - odo);
+      const servicePercent = Math.min(100, Math.max(0, Math.round(((nextServ - kmUntil) / nextServ) * 100)));
+
+      detailContainer.innerHTML = `
+        <!-- HEADER WITH ACTIONS -->
+        <div class="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-gray-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-extrabold text-white tracking-tight">${displayName}</h2>
+              <button onclick="openEditNameModal('${s.device_key}', '${encodeURIComponent(s.name || '')}')"
+                class="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-brand-400 transition" title="Edit Scooter Name">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+              </button>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-400 mt-1 font-mono">
+              <span>Device Key: <span class="text-gray-300">${s.device_key}</span></span>
+              <span>•</span>
+              <span>App: <span class="text-gray-300">v${s.app_version}</span></span>
+              <span>•</span>
+              <span>Last Synced: <span class="text-gray-300">${timeAgo(s.last_sync_timestamp)}</span></span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            ${getBatteryBadge(s.last_soc)}
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-300 border border-gray-700">
+              ${s.last_riding_mode} Mode
+            </span>
+          </div>
+        </div>
+
+        <!-- TELEMETRY SNAPSHOT CARDS -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-5">
+          <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3.5">
+            <span class="text-[11px] font-medium text-gray-400 block">Current Odometer</span>
+            <span class="text-xl font-bold text-white tracking-tight">${odo} km</span>
+          </div>
+          <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3.5">
+            <span class="text-[11px] font-medium text-gray-400 block">Estimated Range</span>
+            <span class="text-xl font-bold text-electric-400 tracking-tight">${s.last_range_km ? s.last_range_km + ' km' : '--'}</span>
+          </div>
+          <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3.5">
+            <span class="text-[11px] font-medium text-gray-400 block">Money Saved</span>
+            <span class="text-xl font-bold text-emerald-400 tracking-tight">₹ ${ins.money_saved_inr || 0}</span>
+          </div>
+          <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3.5">
+            <span class="text-[11px] font-medium text-gray-400 block">CO2 Reduced</span>
+            <span class="text-xl font-bold text-teal-300 tracking-tight">${ins.co2_saved_kg || 0} kg</span>
+          </div>
+        </div>
+
+        <!-- MAINTENANCE & EFFICIENCY -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <!-- Service Milestone -->
+          <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span class="font-semibold text-gray-300">Service Milestone (${nextServ} km)</span>
+              <span class="font-bold text-brand-400">${kmUntil} km remaining</span>
+            </div>
+            <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+              <div class="bg-gradient-to-r from-brand-500 to-electric-500 h-full rounded-full transition-all" style="width: ${servicePercent}%"></div>
+            </div>
+            <span class="text-[11px] text-gray-500 mt-2 block">Scheduled routine maintenance check</span>
+          </div>
+
+          <!-- Real-world Efficiency -->
+          <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-4 flex flex-col justify-center">
+            <span class="text-xs font-semibold text-gray-300 mb-1">Real-World Energy Efficiency</span>
+            <div class="text-sm font-bold text-amber-400">
+              ${ins.real_world_efficiency || 'Calibrating (more ride data needed)'}
+            </div>
+            <span class="text-[11px] text-gray-500 mt-1">Calculated from recent distance vs battery drop</span>
+          </div>
+        </div>
+
+        <!-- TRAVEL HISTORY CHART -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-sm font-bold text-white">Daily Travel History</h3>
+              <p class="text-xs text-gray-400">Distance traveled and SoC consumed per day</p>
+            </div>
+          </div>
+          <div class="h-[200px] w-full">
+            <canvas id="userDailyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- RECENT SYNC / TRIP LOGS TABLE -->
+        <div>
+          <h3 class="text-sm font-bold text-white mb-2">Recent Trips & Sync Logs</h3>
+          <div class="overflow-x-auto custom-scrollbar border border-gray-800 rounded-xl">
+            <table class="w-full text-left text-xs text-gray-300">
+              <thead class="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider border-b border-gray-800">
+                <tr>
+                  <th class="py-2.5 px-3">Date & Time</th>
+                  <th class="py-2.5 px-3">Trigger</th>
+                  <th class="py-2.5 px-3">Odometer</th>
+                  <th class="py-2.5 px-3">Trip</th>
+                  <th class="py-2.5 px-3">SoC</th>
+                  <th class="py-2.5 px-3">Mode</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-800/60 font-mono">
+                ${
+                  syncLogs.length === 0
+                    ? `<tr><td colspan="6" class="py-4 text-center text-gray-500">No sync logs recorded yet</td></tr>`
+                    : syncLogs.map(l => `
+                      <tr class="hover:bg-gray-800/40">
+                        <td class="py-2 px-3 text-gray-300">${new Date(l.timestamp).toLocaleString()}</td>
+                        <td class="py-2 px-3 font-sans">
+                          <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${
+                            l.trigger === 'DISCONNECT' ? 'bg-purple-500/20 text-purple-300' :
+                            l.trigger === 'PERIODIC' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-700 text-gray-300'
+                          }">${l.trigger || 'UNKNOWN'}</span>
+                        </td>
+                        <td class="py-2 px-3 text-white font-semibold">${l.odometer_km} km</td>
+                        <td class="py-2 px-3 text-brand-400">${l.trip_km} km</td>
+                        <td class="py-2 px-3">${l.soc_percent}%</td>
+                        <td class="py-2 px-3 font-sans text-gray-400">${l.riding_mode || '--'}</td>
+                      </tr>
+                    `).join('')
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      renderUserDailyChart(dailyUsage);
+    }
+
+    // User Daily Chart
+    function renderUserDailyChart(days) {
+      const canvas = document.getElementById('userDailyChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (userChartInstance) userChartInstance.destroy();
+
+      const sorted = [...days].reverse(); // Ascending order
+      const labels = sorted.map(d => d.date.slice(5));
+      const distances = sorted.map(d => d.distance_km);
+      const socConsumed = sorted.map(d => d.soc_consumed);
+
+      userChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Distance (km)',
+              data: distances,
+              backgroundColor: 'rgba(34, 197, 94, 0.6)',
+              borderColor: 'rgba(34, 197, 94, 1)',
+              borderWidth: 1.5,
+              borderRadius: 4,
+              yAxisID: 'y'
+            },
+            {
+              label: 'SoC Used (%)',
+              data: socConsumed,
+              type: 'line',
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.2)',
+              borderWidth: 2,
+              pointRadius: 2.5,
+              tension: 0.3,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: { color: '#cbd5e1', font: { size: 10 } }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: { position: 'left', grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#f59e0b', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // Edit Name Modal
+    function openEditNameModal(deviceKey, currentNameEncoded) {
+      document.getElementById('editModalDeviceKey').value = deviceKey;
+      document.getElementById('editModalNameInput').value = decodeURIComponent(currentNameEncoded);
+      const modal = document.getElementById('editNameModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeEditNameModal() {
+      const modal = document.getElementById('editNameModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function saveScooterName() {
+      const deviceKey = document.getElementById('editModalDeviceKey').value;
+      const name = document.getElementById('editModalNameInput').value.trim();
+
+      try {
+        const headers = getFetchHeaders();
+        headers['Content-Type'] = 'application/json';
+
+        const res = await fetch(`/api/admin/scooter/${encodeURIComponent(deviceKey)}/name`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ name })
+        });
+
+        const json = await res.json();
+        if (json.status === 'success') {
+          closeEditNameModal();
+          // Update in local array
+          const item = currentScooters.find(s => s.device_key === deviceKey);
+          if (item) item.name = name;
+          renderScooterList();
+          selectScooter(deviceKey);
+        } else {
+          alert('Failed to update name: ' + (json.message || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Network error saving name: ' + err.message);
+      }
+    }
+
+    // Refresh all
+    async function refreshAllData() {
+      const icon = document.getElementById('refreshIcon');
+      if (icon) icon.classList.add('animate-spin');
+
+      await Promise.all([
+        fetchOverview(),
+        fetchScooters(document.getElementById('scooterFilterInput').value)
+      ]);
+
+      if (icon) icon.classList.remove('animate-spin');
+    }
+
+    // Search events
+    document.getElementById('navSearch').addEventListener('input', (e) => {
+      document.getElementById('scooterFilterInput').value = e.target.value;
+      fetchScooters(e.target.value);
+    });
+
+    document.getElementById('scooterFilterInput').addEventListener('input', (e) => {
+      fetchScooters(e.target.value);
+    });
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateApiKeyButtonUI();
+      refreshAllData();
+
+      // Periodic auto-refresh every 30s
+      setInterval(() => {
+        refreshAllData();
+      }, 30000);
+    });
+  </script>
+</body>
+</html>
