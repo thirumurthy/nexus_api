@@ -4,7 +4,7 @@
  * Free API: https://openrouter.ai
  */
 
-const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const DEFAULT_MODEL = 'nvidia/nemotron-3.5-lightning:free';
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 async function chat(messages, options = {}) {
@@ -68,9 +68,9 @@ module.exports = {
   displayName: 'OpenRouter (:free models)',
   defaultModel: DEFAULT_MODEL,
   supportedModels: [
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'mistralai/mistral-small-24b-instruct-2501:free',
-    'google/gemini-2.0-flash-exp:free'
+    'nvidia/nemotron-3.5-lightning:free',
+    'nvidia/nemotron-3-ultra-550b-a55b:free',
+    'nvidia/nemotron-3.5-super-vl:free'
   ],
   chat
 };

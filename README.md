@@ -37,11 +37,11 @@ The API features a dynamic AI adapter with runtime switching and auto-fallback c
 ### Supported Providers:
 | Provider | Default Model | Free Tier Details | Config Var |
 |---|---|---|---|
-| **Groq Cloud** | `llama-3.3-70b-versatile` | Ultra-fast Llama 3.3 70B & 8B, generous free limits | `GROQ_API_KEY` |
+| **Groq Cloud** | `openai/gpt-oss-120b` | Ultra-fast GPT-OSS 120B/20B, generous free limits | `GROQ_API_KEY` |
 | **Mistral AI** | `mistral-small-latest` | Mistral Small & Open Mistral 7B free tier | `MISTRAL_API_KEY` |
-| **NVIDIA NIM** | `meta/llama-3.3-70b-instruct` | Free developer inference credits at build.nvidia.com | `NVIDIA_API_KEY` |
+| **NVIDIA NIM** | `nvidia/nemotron-3.5-lightning-30b-a3b` | Free developer inference credits at build.nvidia.com | `NVIDIA_API_KEY` |
 | **Google AI (Gemini)** | `gemini-2.0-flash` | Gemini 2.0 Flash & 1.5 Flash generous free tier | `GEMINI_API_KEY` |
-| **OpenRouter** | `meta-llama/llama-3.3-70b-instruct:free` | Free models aggregator (`:free` models) | `OPENROUTER_API_KEY` |
+| **OpenRouter** | `nvidia/nemotron-3.5-lightning:free` | Free models aggregator (`:free` models) | `OPENROUTER_API_KEY` |
 | **Cohere** | `command-r-08-2024` | Cohere trial keys | `COHERE_API_KEY` |
 | **Local Ollama** | `llama3.2` | 100% offline, zero-cost inference (`http://localhost:11434`) | `OLLAMA_BASE_URL` |
 | **Local Physics Fallback** | `nexus-physics-v1` | Deterministic EV physics engine (zero downtime fallback) | Built-in |

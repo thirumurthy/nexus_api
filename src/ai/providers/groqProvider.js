@@ -1,10 +1,10 @@
 /**
  * Groq AI Provider Adapter
- * Ultra-fast inference with generous free tier (Llama 3.3 70B, Llama 3.1 8B, Mixtral)
+ * Ultra-fast inference with generous free tier (GPT-OSS 120B / 20B, Qwen3.8)
  * Free API: https://console.groq.com
  */
 
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 async function chat(messages, options = {}) {
@@ -67,8 +67,8 @@ async function chat(messages, options = {}) {
 
 module.exports = {
   name: 'groq',
-  displayName: 'Groq Cloud (Llama 3.3 70B)',
+  displayName: 'Groq Cloud (GPT-OSS 120B)',
   defaultModel: DEFAULT_MODEL,
-  supportedModels: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
+  supportedModels: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'],
   chat
 };

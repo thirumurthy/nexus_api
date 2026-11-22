@@ -4,7 +4,7 @@
  * Free API: https://build.nvidia.com
  */
 
-const DEFAULT_MODEL = 'meta/llama-3.3-70b-instruct';
+const DEFAULT_MODEL = 'nvidia/nemotron-3.5-lightning-30b-a3b';
 const API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 
 async function chat(messages, options = {}) {
@@ -22,7 +22,8 @@ async function chat(messages, options = {}) {
       model,
       messages,
       temperature: options.temperature ?? 0.6,
-      max_tokens: options.maxTokens || 1200
+      max_tokens: options.maxTokens || 1200,
+      chat_template_kwargs: { enable_thinking: false }
     };
 
     const res = await fetch(API_URL, {
@@ -63,12 +64,12 @@ async function chat(messages, options = {}) {
 
 module.exports = {
   name: 'nvidia',
-  displayName: 'NVIDIA NIM (Llama 3.3 70B)',
+  displayName: 'NVIDIA NIM (Nemotron 3.5 Lightning 30B)',
   defaultModel: DEFAULT_MODEL,
   supportedModels: [
-    'meta/llama-3.3-70b-instruct',
-    'mistralai/mistral-large-2-instruct',
-    'nvidia/llama-3.1-nemotron-70b-instruct'
+    'nvidia/nemotron-3.5-lightning-30b-a3b',
+    'nvidia/nemotron-3-ultra-550b-a55b',
+    'nvidia/nemotron-3-nano-30b-a3b'
   ],
   chat
 };
