@@ -333,3 +333,23 @@ exports.renderDashboard = (req, res) => {
     res.status(500).send('Error loading dashboard: ' + err.message);
   }
 };
+
+// Serve AI Test Bench UI HTML
+let cachedAiTestHtml = null;
+exports.renderAiTest = (req, res) => {
+  try {
+    const htmlPath = path.join(__dirname, '../views/ai-test.html');
+    if (!cachedAiTestHtml || process.env.NODE_ENV !== 'production') {
+      if (fs.existsSync(htmlPath)) {
+        cachedAiTestHtml = fs.readFileSync(htmlPath, 'utf8');
+      }
+    }
+    if (cachedAiTestHtml) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(cachedAiTestHtml);
+    }
+    res.status(500).send('AI test view not found');
+  } catch (err) {
+    res.status(500).send('Error loading AI test page: ' + err.message);
+  }
+};

@@ -23,6 +23,9 @@ app.use(express.json({ limit: '20kb' }));
 // Serve Dashboard UI directly on /admin and /dashboard
 app.get(['/admin', '/dashboard'], admin.renderDashboard);
 
+// Serve AI Test Bench UI directly on /admin/ai-test
+app.get(['/admin/ai-test', '/ai-test'], admin.renderAiTest);
+
 // Root route: redirect browsers to /admin, return JSON for API clients
 app.get('/', (req, res) => {
   if (req.accepts('html') && !req.accepts('json')) {

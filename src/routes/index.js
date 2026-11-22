@@ -16,6 +16,7 @@ router.get('/health', (req, res) => res.json({
 
 // Web Dashboard HTML views
 router.get(['/admin', '/dashboard'], admin.renderDashboard);
+router.get(['/admin/ai-test', '/ai-test'], admin.renderAiTest);
 
 // Fast in-memory API key validation endpoint (no database query needed)
 router.get('/admin/auth-test', apiKey, (req, res) => res.json({ status: 'success', message: 'API Key is valid' }));
