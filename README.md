@@ -1,64 +1,158 @@
-# Scooter Sync & Fleet Insights API
+# Nexus Pulse EV — Scooter Sync & Fleet Telemetry API
 
-Express + MongoDB (Mongoose) REST API with interactive Admin Dashboard, ready for Vercel.
+Express + MongoDB (Mongoose) REST API for the **Ampere Nexus EV Ecosystem (EX v4.2 / 7" TFT Cluster)**, based on the **Nexus Pulse Cyber-Automotive** design and BLE technical specification.
 
-## Structure
+Includes:
+- **Interactive Multi-Tab Dashboard & Admin Hub** (`/admin`)
+- **Swappable AI Provider Engine** (Groq, Mistral, NVIDIA NIM, Google AI / Gemini, OpenRouter, Cohere, Ollama, and local physics fallback)
+- **Stitch Revamp Telemetry**: Hero HUD, Trips & Cadence trends (3D/7D/30D/1Y), LFP 16-cell diagnostics matrix, and vehicle remote controls.
+
+---
+
+## 🏗️ Project Structure
 ```
 api/index.js              Vercel serverless entry
-src/app.js                Express app
+src/app.js                Express app & middleware
 src/server.js             Local dev server
-src/config/               env + cached Mongo connection
-src/models/               Scooter, DailyUsage, SyncLog
-src/controllers/          sync + read + admin endpoints
-src/services/             insights calculations
-src/middleware/           validation, API key, errors
-src/routes/               route table
-src/views/dashboard.html  Interactive Fleet Admin Dashboard
-vercel.json               rewrites all traffic to the Express function
+src/config/               Environment & cached Mongo connection
+src/ai/                   Swappable AI Provider System
+  ├── aiProviderManager.js  Multi-provider orchestrator & auto-cascade engine
+  ├── aiCoachService.js     Nexus Neural Copilot & Dynamic Insights generator
+  └── providers/            Groq, Mistral, NVIDIA NIM, Google Gemini, OpenRouter, Cohere, Ollama, Fallback
+src/models/               Scooter, Trip, DailyUsage, SyncLog
+src/controllers/          Sync, Scooter, Trips, AI, Admin endpoints
+src/services/             Insights & ownership savings calculations
+src/middleware/           Zod validation, API key check, error handling
+src/routes/               REST API route definitions
+src/views/dashboard.html  Interactive Fleet Admin & AI Hub
+vercel.json               Vercel serverless deployment config
 ```
 
-## Endpoints
+---
 
-### Public & Sync APIs
-| Method | Path | Purpose |
+## 🤖 Swappable Free AI Providers
+
+The API features a dynamic AI adapter with runtime switching and auto-fallback cascading.
+
+### Supported Providers:
+| Provider | Default Model | Free Tier Details | Config Var |
+|---|---|---|---|
+| **Groq Cloud** | `llama-3.3-70b-versatile` | Ultra-fast Llama 3.3 70B & 8B, generous free limits | `GROQ_API_KEY` |
+| **Mistral AI** | `mistral-small-latest` | Mistral Small & Open Mistral 7B free tier | `MISTRAL_API_KEY` |
+| **NVIDIA NIM** | `meta/llama-3.3-70b-instruct` | Free developer inference credits at build.nvidia.com | `NVIDIA_API_KEY` |
+| **Google AI (Gemini)** | `gemini-2.0-flash` | Gemini 2.0 Flash & 1.5 Flash generous free tier | `GEMINI_API_KEY` |
+| **OpenRouter** | `meta-llama/llama-3.3-70b-instruct:free` | Free models aggregator (`:free` models) | `OPENROUTER_API_KEY` |
+| **Cohere** | `command-r-08-2024` | Cohere trial keys | `COHERE_API_KEY` |
+| **Local Ollama** | `llama3.2` | 100% offline, zero-cost inference (`http://localhost:11434`) | `OLLAMA_BASE_URL` |
+| **Local Physics Fallback** | `nexus-physics-v1` | Deterministic EV physics engine (zero downtime fallback) | Built-in |
+
+### Switching Providers:
+1. **Via Environment Variable (`.env`):**
+   ```env
+   ACTIVE_AI_PROVIDER=auto    # 'auto' cascades through available keys
+   # Or lock to a specific provider:
+   ACTIVE_AI_PROVIDER=groq    # 'mistral', 'nvidia', 'google', 'openrouter'
+   ```
+2. **Via REST API (At runtime without restarting the server):**
+   ```bash
+   POST /api/ai/provider
+   Content-Type: application/json
+
+   {
+     "provider": "mistral"
+   }
+   ```
+3. **Via the Admin Dashboard (`/admin`):**
+   - Click the **AI: Auto** button in the top navigation bar to open the AI Provider Manager modal.
+   - Click "Switch To" on any provider or benchmark its latency in real-time.
+
+---
+
+## 📡 Complete REST API Endpoints
+
+### 1. AI & Copilot APIs
+| Method | Path | Description |
 |---|---|---|
-| GET | `/` | Web redirect to `/admin` or API health status |
-| GET | `/admin` or `/dashboard` | **Interactive Admin & Fleet Insights Web Dashboard** |
-| GET | `/api/health` | Health check |
-| POST | `/api/scooter/sync` | Upload odometer/SoC snapshot, returns insights |
-| GET | `/api/scooter/:deviceId/insights` | Restore insights on a fresh install |
-| GET | `/api/scooter/:deviceId/daily?from=&to=` | Day-by-day distance (bar chart) |
-| GET | `/api/scooter/:deviceId/monthly?months=6` | Monthly comparison |
+| `GET` | `/api/ai/providers` | List all providers, active model, and key setup status |
+| `POST` | `/api/ai/provider` | Dynamically switch active AI provider |
+| `POST` | `/api/ai/test` | Test connectivity and benchmark response latency |
+| `POST` | `/api/ai/chat` | Generic copilot chat query |
+| `GET` | `/api/scooter/:deviceId/ai-coach` | Get AI Neural Copilot Coaching & Eco Score |
+| `POST` | `/api/scooter/:deviceId/ai-coach/refresh` | Force regenerate AI coaching tips with fresh telemetry |
+| `POST` | `/api/scooter/:deviceId/ai-copilot/chat` | Contextual conversational copilot injected with scooter live telemetry |
 
-### Admin APIs
-| Method | Path | Purpose |
+### 2. Core Telemetry & Home HUD APIs
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/overview` | Fleet-wide analytics: total distance, petrol/CO2 savings, 14d travel trend, commute range distribution, popular riding modes |
-| GET | `/api/admin/scooters?search=` | List and search all registered scooters by name, device ID, or app version |
-| GET | `/api/admin/scooter/:deviceKey` | Specific scooter insights, battery health, 30d daily travel history, and raw sync logs |
-| PATCH | `/api/admin/scooter/:deviceKey/name` | Assign or update friendly rider/scooter name (e.g. `{ "name": "Thiru's Ather" }`) |
+| `POST` | `/api/scooter/sync` | Ingest vehicle live state (`0xFF11`) & battery (`0xFF12`) packets |
+| `GET` | `/api/scooter/:deviceId/live` | Live HUD telemetry: today's km, avg speed, battery used, goal % |
+| `GET` | `/api/scooter/:deviceId/insights` | Full insights: ownership savings (₹), CO2 offset, energy dynamics |
 
-`:deviceId` is URL-encoded (`4C%3A24%3A98%3AA1%3AB2%3AC3`).
+### 3. Trips & Cadence APIs (Trips Tab)
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/scooter/:deviceId/cadence?range=7D` | Cadence trend aggregation (`3D`, `7D`, `30D`, `1Y`) |
+| `GET` | `/api/scooter/:deviceId/trips` | Recent ride journeys list + latest completed ride spotlight |
+| `POST` | `/api/scooter/:deviceId/trips` | Record a completed trip session with GPS and telemetry |
+| `GET` | `/api/scooter/:deviceId/trips/:tripId` | Get detailed trip metrics & velocity profiles |
+| `POST` | `/api/scooter/:deviceId/trips/:tripId/analyze` | Request AI ride critique and efficiency feedback |
+| `GET` | `/api/scooter/:deviceId/daily?from=&to=` | Day-by-day travel distance and SoC consumed |
+| `GET` | `/api/scooter/:deviceId/monthly?months=6` | Month-over-month usage trends |
 
-## Run locally
+### 4. Hardware Controls & Diagnostics (Scooter Tab)
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/scooter/:deviceId/control` | Remote commands: `LOCK`, `UNLOCK`, `BOOT_RELEASE`, `SIREN_PING`, `FLASH_HAZARDS`, `SET_CLUSTER_MODE` |
+| `GET` | `/api/scooter/:deviceId/diagnostics` | LFP 16-cell voltage delta matrix (51.2V, cell delta, SOH) & MCU status |
+| `POST` | `/api/scooter/:deviceId/diagnostics/scan` | Trigger full diagnostic scan & cell balancing calibration |
+
+### 5. Settings & Preferences (Settings Tab)
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/scooter/:deviceId/settings` | Riding modes, regen strength, hill hold, reverse assist toggles |
+| `PATCH` | `/api/scooter/:deviceId/settings` | Update rider preferences & cluster configuration |
+| `GET` | `/api/scooter/:deviceId/export?format=json|csv` | Export ride data in CSV or JSON |
+
+### 6. Admin & Fleet Insights APIs
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/admin` or `/dashboard` | **Interactive Admin & Fleet Insights Web Dashboard** |
+| `GET` | `/api/health` | Service health status |
+| `GET` | `/api/admin/overview` | Fleet-wide analytics: total distance, petrol/CO2 savings, 14d trend |
+| `GET` | `/api/admin/scooters?search=` | List and search all registered scooters |
+| `GET` | `/api/admin/scooter/:deviceKey` | Single scooter telemetry, battery health, trips, and raw sync logs |
+| `PATCH` | `/api/admin/scooter/:deviceKey/name` | Assign friendly scooter name (e.g. `{ "name": "Thiru's Nexus" }`) |
+
+---
+
+## 🚀 Running Locally
+
 ```bash
+cd F:\Thiru\nexus_api
+
+# 1. Install dependencies
 npm install
-cp .env.example .env   # fill MONGODB_URI, DEVICE_SALT
+
+# 2. Configure environment variables
+# Copy .env.example to .env and fill in MONGODB_URI and your AI keys:
+# GROQ_API_KEY, MISTRAL_API_KEY, NVIDIA_API_KEY, GEMINI_API_KEY
 npm run dev
-# Open http://localhost:3000/admin in your browser
+
+# 3. Open browser
+http://localhost:3000/admin
 ```
 
-## Deploy on Vercel
-1. Push to GitHub, then **Add New > Project** on Vercel and import the repo.
-2. Add env vars in Vercel Settings: `MONGODB_URI`, `DEVICE_SALT`, optional `API_KEY`, `TZ_OFFSET_MINUTES`.
-3. In MongoDB Atlas > Network Access, allow `0.0.0.0/0` (Vercel IPs are dynamic).
-4. Deploy and visit:
-   - Dashboard: `https://<project>.vercel.app/admin`
-   - Health check: `https://<project>.vercel.app/api/health`
+---
 
-## Notes
-- **Identity:** a raw MAC is hashed server-side with `DEVICE_SALT` (SHA-256). If the app sends an already-hashed ID it is used as-is. Pick one scheme and keep it forever.
-- **Idempotent:** retried syncs with the same `sync_timestamp` are not double counted.
-- **Stale syncs:** an offline-queued sync older than the latest one is logged but does not rewind aggregates.
-- **SoC consumed** is estimated from the drop between consecutive syncs while the odometer advanced; charging between rides can make it a slight underestimate.
-- If `API_KEY` is set, send `x-api-key` on every `/api/scooter/*` and `/api/admin/*` call (the Admin Dashboard includes an API Key configuration dialog to set this in the UI).
+## ☁️ Deploying on Vercel
+
+1. Push your repository to GitHub.
+2. In Vercel, click **Add New > Project** and import the repository.
+3. In **Settings > Environment Variables**, add:
+   - `MONGODB_URI`: Your MongoDB Atlas connection URI
+   - `DEVICE_SALT`: Long random string for MAC hashing
+   - `ACTIVE_AI_PROVIDER`: `auto`
+   - `GROQ_API_KEY`, `MISTRAL_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY` (as available)
+   - `API_KEY`: (Optional) Secret key to protect endpoints with `x-api-key` header
+4. In MongoDB Atlas **Network Access**, ensure `0.0.0.0/0` is allowed (Vercel serverless IPs are dynamic).
+5. Deploy and visit `https://<your-project>.vercel.app/admin`.

@@ -13,5 +13,15 @@ module.exports = {
   petrolCo2KgPerLiter: num(process.env.PETROL_CO2_KG_PER_LITER, 2.31),
   evCo2KgPerKm: num(process.env.EV_CO2_KG_PER_KM, 0.011),
   serviceMilestonesKm: [1000, 5000, 10000],
-  serviceRepeatKm: 5000
+  serviceRepeatKm: 5000,
+
+  // AI Provider Configuration (Mistral, NVIDIA, Groq, Google AI, OpenRouter, Cohere, Ollama)
+  activeAiProvider: (process.env.ACTIVE_AI_PROVIDER || 'auto').toLowerCase(),
+  groqApiKey: process.env.GROQ_API_KEY || process.env.GRAQ_API_KEY || '',
+  mistralApiKey: process.env.MISTRAL_API_KEY || '',
+  nvidiaApiKey: process.env.NVIDIA_API_KEY || '',
+  geminiApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || '',
+  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  cohereApiKey: process.env.COHERE_API_KEY || '',
+  ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
 };

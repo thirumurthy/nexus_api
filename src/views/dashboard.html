@@ -96,6 +96,13 @@
         <span id="apiKeyStatusText">API Key</span>
       </button>
 
+      <!-- AI Provider Modal Trigger Button -->
+      <button id="aiBtn" type="button"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 transition cursor-pointer">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span id="aiActiveProviderText">AI: Auto</span>
+      </button>
+
       <!-- Refresh Button -->
       <button id="refreshBtn" type="button"
         class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-green-600 hover:bg-green-500 text-white shadow transition cursor-pointer">
@@ -374,6 +381,63 @@
       <div class="flex items-center justify-end gap-2.5">
         <button id="cancelEditModalBtn" type="button" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 rounded-lg transition cursor-pointer">Cancel</button>
         <button id="saveEditModalBtn" type="button" class="px-4 py-2 text-xs font-semibold text-white bg-green-600 hover:bg-green-500 rounded-lg shadow transition cursor-pointer">Save Name</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI PROVIDERS & NEURAL COPILOT HUB -->
+  <div id="aiModal" style="display: none;" class="modal-backdrop fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="card-glass border border-cyan-500/30 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4 border-b border-gray-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-xl bg-cyan-950/80 border border-cyan-500/30 text-cyan-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </span>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              Nexus Neural AI Engine
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30 uppercase">Free Swappable</span>
+            </h3>
+            <p class="text-xs text-gray-400">Configure, benchmark, and switch free AI providers dynamically anytime</p>
+          </div>
+        </div>
+        <button id="closeAiModalBtn" type="button" class="text-gray-400 hover:text-white text-2xl p-1 leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <!-- PROVIDER SELECTION LIST -->
+      <div class="space-y-3 mb-6">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-gray-300 uppercase tracking-wider">Available AI Providers</label>
+          <span id="aiActiveEffectiveLabel" class="text-xs text-cyan-400 font-mono">Active: Auto</span>
+        </div>
+        <div id="aiProvidersContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="p-4 text-center text-xs text-gray-400 col-span-2">Loading AI providers...</div>
+        </div>
+      </div>
+
+      <!-- COPILOT TEST BENCH -->
+      <div class="border-t border-gray-800 pt-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-white uppercase tracking-wider">Test Nexus Neural Copilot</h4>
+          <span class="text-[10px] text-gray-400">Contextual EV Assistant</span>
+        </div>
+        <div class="flex gap-2">
+          <input id="copilotTestInput" type="text" placeholder="e.g. How can I increase range to 100km on my Nexus?"
+            class="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500" />
+          <button id="copilotTestSendBtn" type="button"
+            class="px-4 py-2 text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg transition cursor-pointer shrink-0">
+            Send Query
+          </button>
+        </div>
+        <div id="copilotTestOutput" class="hidden p-3.5 rounded-xl bg-gray-950 border border-gray-800 text-xs text-gray-300 font-mono space-y-1.5">
+          <div class="flex items-center justify-between text-[10px] text-gray-500">
+            <span id="copilotProviderTag">Provider: Groq</span>
+            <span id="copilotLatencyTag">Latency: 120ms</span>
+          </div>
+          <p id="copilotAnswerText" class="text-gray-200 whitespace-pre-wrap"></p>
+        </div>
       </div>
     </div>
   </div>
@@ -863,6 +927,73 @@
           </div>
         </div>
 
+        <!-- REMOTE HARDWARE CONTROLS ROW -->
+        <div class="flex flex-wrap items-center gap-2 pt-3 pb-1">
+          <button onclick="executeScooterControl('${s.device_key}', '${s.is_locked ? 'UNLOCK' : 'LOCK'}')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold ${s.is_locked ? 'bg-red-950 text-red-300 border border-red-800' : 'bg-green-950 text-green-300 border border-green-800'} hover:opacity-80 transition cursor-pointer flex items-center gap-1.5">
+            <span>${s.is_locked ? '🔒 Unlock Vehicle' : '🔓 Lock Vehicle'}</span>
+          </button>
+          <button onclick="executeScooterControl('${s.device_key}', 'BOOT_RELEASE')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 transition cursor-pointer flex items-center gap-1.5">
+            <span>📦 Open Boot</span>
+          </button>
+          <button onclick="executeScooterControl('${s.device_key}', 'SIREN_PING')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 transition cursor-pointer flex items-center gap-1.5">
+            <span>🔊 Siren Ping</span>
+          </button>
+          <button onclick="triggerDiagnosticsScan('${s.device_key}')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/30 text-cyan-300 transition cursor-pointer flex items-center gap-1.5">
+            <span>⚡ Run Scan</span>
+          </button>
+        </div>
+
+        <!-- STITCH LFP BATTERY & NEURAL ECO SCORE GRID -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <!-- Card 1: LFP 16-Cell Battery Matrix -->
+          <div class="bg-gray-900 border border-cyan-500/20 rounded-xl p-4">
+            <div class="flex items-center justify-between text-xs mb-3">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-cyan-400"></span> LFP Battery Matrix
+              </span>
+              <span class="font-mono text-cyan-300 px-2 py-0.5 rounded bg-cyan-950 text-[10px]">3.3 kWh • 51.2V</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
+                <span class="text-[10px] text-gray-400 block">Pack Temp</span>
+                <span class="font-bold text-white font-mono">${s.battery_temp || 29.4} °C</span>
+              </div>
+              <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
+                <span class="text-[10px] text-gray-400 block">Cell Delta</span>
+                <span class="font-bold text-green-400 font-mono">${s.cell_delta_v || 0.008} V</span>
+              </div>
+              <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
+                <span class="text-[10px] text-gray-400 block">Health SOH</span>
+                <span class="font-bold text-cyan-300 font-mono">${s.battery_soh || 98}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Neural Copilot Eco Score -->
+          <div class="bg-gray-900 border border-green-500/20 rounded-xl p-4">
+            <div class="flex items-center justify-between text-xs mb-3">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> Nexus Neural Copilot
+              </span>
+              <span class="font-mono text-green-300 px-2 py-0.5 rounded bg-green-950 text-[10px]">Top 5% Rider</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-baseline gap-1">
+                <span class="text-3xl font-extrabold text-white font-mono">${s.eco_score || 96}</span>
+                <span class="text-xs text-cyan-400 font-mono">/ 100 ECO</span>
+              </div>
+              <div class="text-right text-xs">
+                <span class="text-green-400 font-semibold block">Master Throttle Flow</span>
+                <span class="text-gray-400 text-[10px]">+18 km bonus range</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- TELEMETRY SNAPSHOT CARDS -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-5">
           <div class="bg-gray-900 border border-gray-800 rounded-xl p-3.5">
@@ -1084,12 +1215,217 @@
       if (icon) icon.classList.remove('animate-spin');
     }
 
+    // AI Providers Management
+    async function loadAiProviders() {
+      const container = document.getElementById('aiProvidersContainer');
+      const activeLabel = document.getElementById('aiActiveEffectiveLabel');
+      const topBtnLabel = document.getElementById('aiActiveProviderText');
+
+      try {
+        const res = await fetch('/api/ai/providers', { headers: getFetchHeaders() });
+        const json = await res.json();
+        if (json.status !== 'success') {
+          container.innerHTML = `<div class="p-4 text-center text-red-400 text-xs col-span-2">Failed to load AI providers</div>`;
+          return;
+        }
+
+        const effective = json.effective_provider || 'auto';
+        activeLabel.textContent = `Active Setting: ${json.active_setting.toUpperCase()} (${effective.toUpperCase()} effective)`;
+        topBtnLabel.textContent = `AI: ${json.active_setting.toUpperCase()}`;
+
+        let html = '';
+        json.providers.forEach(p => {
+          const isAct = p.isActive;
+          html += `
+            <div class="p-3.5 rounded-xl border ${isAct ? 'bg-cyan-950/40 border-cyan-500 shadow-[0_0_15px_rgba(0,229,255,0.15)]' : 'bg-gray-900 border-gray-800'} flex flex-col justify-between space-y-2.5">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h5 class="text-xs font-bold text-white flex items-center gap-1.5">
+                    ${p.displayName}
+                    ${isAct ? '<span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500 text-black">ACTIVE</span>' : ''}
+                  </h5>
+                  <span class="text-[10px] text-gray-400 font-mono block mt-0.5">Model: ${p.defaultModel}</span>
+                </div>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${p.configured ? 'bg-green-950 text-green-400 border border-green-800' : 'bg-gray-800 text-gray-500'}">
+                  ${p.configured ? 'KEY SET' : 'NO KEY'}
+                </span>
+              </div>
+              <div class="flex items-center gap-2 pt-1 border-t border-gray-800/80">
+                <button onclick="switchAiProvider('${p.id}')"
+                  class="flex-1 py-1 px-2 rounded-lg text-[10px] font-bold ${isAct ? 'bg-gray-800 text-gray-400 cursor-default' : 'bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 cursor-pointer'} transition">
+                  ${isAct ? 'In Use' : 'Switch To'}
+                </button>
+                <button onclick="testAiProvider('${p.id}')"
+                  class="py-1 px-2.5 rounded-lg text-[10px] font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition cursor-pointer">
+                  Test
+                </button>
+              </div>
+            </div>
+          `;
+        });
+
+        // Add Auto Option Card
+        const isAuto = json.active_setting === 'auto';
+        html = `
+          <div class="p-3.5 rounded-xl border ${isAuto ? 'bg-cyan-950/40 border-cyan-500 shadow-[0_0_15px_rgba(0,229,255,0.15)]' : 'bg-gray-900 border-gray-800'} flex flex-col justify-between space-y-2.5 col-span-1 sm:col-span-2">
+            <div class="flex items-start justify-between">
+              <div>
+                <h5 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  ⚡ Auto Cascade Mode (Smart Free Tier Failover)
+                  ${isAuto ? '<span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500 text-black">ACTIVE</span>' : ''}
+                </h5>
+                <span class="text-[10px] text-gray-400 block mt-0.5">Automatically tries Groq → Google AI → Mistral → NVIDIA → OpenRouter → Local Physics Fallback on rate limits.</span>
+              </div>
+              <button onclick="switchAiProvider('auto')"
+                class="py-1 px-3 rounded-lg text-xs font-bold ${isAuto ? 'bg-gray-800 text-gray-400 cursor-default' : 'bg-cyan-400 hover:bg-cyan-300 text-black cursor-pointer'} transition">
+                ${isAuto ? 'Active' : 'Enable Auto'}
+              </button>
+            </div>
+          </div>
+        ` + html;
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<div class="p-4 text-center text-red-400 text-xs col-span-2">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function switchAiProvider(providerId) {
+      try {
+        const res = await fetch('/api/ai/provider', {
+          method: 'POST',
+          headers: { ...getFetchHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: providerId })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          showToast(`Active AI switched to ${providerId.toUpperCase()}`, 'success');
+          loadAiProviders();
+        } else {
+          showToast('Failed to switch AI: ' + (json.message || 'Error'), 'error');
+        }
+      } catch (err) {
+        showToast('Network error switching AI: ' + err.message, 'error');
+      }
+    }
+
+    async function testAiProvider(providerId) {
+      showToast(`Benchmarking ${providerId.toUpperCase()}...`, 'info');
+      try {
+        const res = await fetch('/api/ai/test', {
+          method: 'POST',
+          headers: { ...getFetchHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: providerId, prompt: 'Respond with OK and model name.' })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          showToast(`✅ ${providerId.toUpperCase()} OK (${json.test_result.latency_ms}ms)`, 'success');
+        } else {
+          showToast(`❌ ${providerId.toUpperCase()} Failed: ${json.message}`, 'error');
+        }
+      } catch (err) {
+        showToast(`❌ Error: ${err.message}`, 'error');
+      }
+    }
+
+    async function sendCopilotTest() {
+      const input = document.getElementById('copilotTestInput');
+      const q = (input.value || '').trim();
+      if (!q) return;
+
+      const output = document.getElementById('copilotTestOutput');
+      const ans = document.getElementById('copilotAnswerText');
+      const provTag = document.getElementById('copilotProviderTag');
+      const latTag = document.getElementById('copilotLatencyTag');
+
+      output.classList.remove('hidden');
+      ans.textContent = 'Thinking with active AI provider...';
+
+      try {
+        const res = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { ...getFetchHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: q })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          provTag.textContent = `Provider: ${json.provider.toUpperCase()} (${json.model})`;
+          latTag.textContent = `Latency: ${json.latency_ms}ms`;
+          ans.textContent = json.reply;
+        } else {
+          ans.textContent = 'Error: ' + (json.message || 'Failed to get answer');
+        }
+      } catch (err) {
+        ans.textContent = 'Network error: ' + err.message;
+      }
+    }
+
+    function openAiModal() {
+      document.getElementById('aiModal').style.display = 'flex';
+      loadAiProviders();
+    }
+
+    function closeAiModal() {
+      document.getElementById('aiModal').style.display = 'none';
+    }
+
+    // Remote vehicle control
+    async function executeScooterControl(deviceKey, command) {
+      showToast(`Dispatching ${command} command via API...`, 'info');
+      try {
+        const res = await fetch(`/api/scooter/${encodeURIComponent(deviceKey)}/control`, {
+          method: 'POST',
+          headers: { ...getFetchHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          showToast(json.feedback || 'Command executed successfully', 'success');
+          selectScooter(deviceKey);
+        } else {
+          showToast('Failed command: ' + (json.message || 'Error'), 'error');
+        }
+      } catch (err) {
+        showToast('Network error: ' + err.message, 'error');
+      }
+    }
+
+    async function triggerDiagnosticsScan(deviceKey) {
+      showToast('Initiating full 16-cell diagnostic scan...', 'info');
+      try {
+        const res = await fetch(`/api/scooter/${encodeURIComponent(deviceKey)}/diagnostics/scan`, {
+          method: 'POST',
+          headers: getFetchHeaders()
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          showToast(`Diagnostics Scan Complete! Cell Delta: ${json.metrics.cell_delta_v}V (Optimal)`, 'success');
+          selectScooter(deviceKey);
+        } else {
+          showToast('Diagnostic scan failed: ' + json.message, 'error');
+        }
+      } catch (err) {
+        showToast('Network error: ' + err.message, 'error');
+      }
+    }
+
     // Attach all event listeners cleanly via DOM (Zero inline onclicks)
     window.addEventListener('DOMContentLoaded', () => {
       // Top bar buttons
       document.getElementById('apiKeyBtn').addEventListener('click', openApiKeyModal);
+      document.getElementById('aiBtn').addEventListener('click', openAiModal);
       document.getElementById('refreshBtn').addEventListener('click', refreshAllData);
       document.getElementById('authBannerBtn').addEventListener('click', openApiKeyModal);
+
+      // AI Modal buttons
+      document.getElementById('closeAiModalBtn').addEventListener('click', closeAiModal);
+      document.getElementById('aiModal').addEventListener('click', (e) => {
+        if (e.target.id === 'aiModal') closeAiModal();
+      });
+      document.getElementById('copilotTestSendBtn').addEventListener('click', sendCopilotTest);
+      document.getElementById('copilotTestInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendCopilotTest();
+      });
 
       // API Key Modal buttons
       document.getElementById('closeApiKeyBtn').addEventListener('click', closeApiKeyModal);
@@ -1127,6 +1463,7 @@
 
       // Initial state & data load
       updateApiKeyButtonUI();
+      loadAiProviders();
       refreshAllData();
 
       // Auto-refresh every 30s

@@ -11,6 +11,10 @@ const syncLogSchema = new Schema(
     remainingRangeKm: Number,
     ridingMode: String,
     appVersion: String,
+    batteryVoltage: Number,
+    batteryTemp: Number,
+    cellDeltaV: Number,
+    avgSpeedKmh: Number,
     createdAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 } // keep raw logs 90 days
   },
   { versionKey: false }

@@ -33,7 +33,14 @@ app.get('/', (req, res) => {
 
 // Ensure DB is connected for API endpoints (cached across serverless invocations)
 app.use('/api', async (req, res, next) => {
-  if (req.path === '/health' || req.path === '/admin' || req.path === '/dashboard' || req.path === '/admin/auth-test') return next();
+  if (
+    req.path === '/health' ||
+    req.path === '/admin' ||
+    req.path === '/dashboard' ||
+    req.path === '/admin/auth-test' ||
+    req.path === '/ai/providers' ||
+    req.path === '/ai/test'
+  ) return next();
   try {
     await connectDB();
     next();

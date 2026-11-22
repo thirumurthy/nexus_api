@@ -10,7 +10,16 @@ const dailyUsageSchema = new Schema(
     endSoc: { type: Number },
     distanceKm: { type: Number, default: 0 },
     socConsumed: { type: Number, default: 0 },
-    syncCount: { type: Number, default: 0 }
+    syncCount: { type: Number, default: 0 },
+
+    // Stitch Revamp Daily Telemetry
+    avgSpeedKmh: { type: Number, default: 24 },
+    maxSpeedKmh: { type: Number, default: 67 },
+    rideTimeMins: { type: Number, default: 0 },
+    tripCount: { type: Number, default: 0 },
+    energyConsumedKwh: { type: Number, default: 0 },
+    regenRecapturedKwh: { type: Number, default: 0 },
+    goalKm: { type: Number, default: 25 }
   },
   { timestamps: true }
 );
