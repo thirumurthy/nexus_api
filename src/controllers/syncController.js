@@ -4,7 +4,7 @@ const SyncLog = require('../models/SyncLog');
 const Trip = require('../models/Trip');
 const { syncSchema } = require('../middleware/validate');
 const { toDeviceKey } = require('../utils/hash');
-const { dayKey } = require('../utils/date');
+const { dayKey, daysAgoKey } = require('../utils/date');
 const { buildInsights } = require('../services/insightsService');
 
 async function applySync(deviceKey, b) {
@@ -13,47 +13,104 @@ async function applySync(deviceKey, b) {
   // Out-of-order (older) offline syncs are logged but don't rewind aggregates
   if (scooter && b.sync_timestamp < scooter.lastSyncTimestamp) return;
 
-  const prevOdo = scooter ? scooter.lastOdometer : Math.max(0, b.odometer_km - b.trip_km);
+  const today = dayKey(b.sync_timestamp);
+  const yesterday = daysAgoKey(b.sync_timestamp, 1);
   const prevSoc = scooter?.lastSoc;
 
-  const distance = Math.max(0, b.odometer_km - prevOdo);
-  const socDrop = prevSoc != null && distance > 0 ? Math.max(0, prevSoc - b.soc_percent) : 0;
+  // ─── 1. Reliable Baseline & Today's Distance Calculation ──────────────────
+  // Per Ampere Nexus cluster specifications:
+  // - Cluster Trip meter is cumulative/non-resettable in hardware.
+  // - Cluster Odometer reading is the ONLY reliable absolute truth.
+  // - Distance driven today = today's odometer reading - yesterday's final odometer reading.
+  // - If the difference is > 300 km or < 0 km, ignore (charging takes ~3 hrs, 90 km per charge max).
+  // - Ignore any packet reporting odometer <= 0 (uninitialized / disconnected fallback).
 
-  // Daily usage updates
+  const isValidOdo = typeof b.odometer_km === 'number' && b.odometer_km > 0;
+  let reliableTodayDistance = null;
+
+  if (isValidOdo) {
+    // 1. Locate yesterday's odometer
+    let yesterdayUsage = await DailyUsage.findOne({ deviceKey, date: yesterday }).lean();
+    let baselineOdo = (yesterdayUsage && yesterdayUsage.endOdometer > 0) ? yesterdayUsage.endOdometer : null;
+
+    // 2. If yesterday has no valid endOdometer, find the most recent prior day with endOdometer > 0
+    if (!baselineOdo) {
+      const priorDay = await DailyUsage.findOne({
+        deviceKey,
+        date: { $lt: today },
+        endOdometer: { $gt: 0 }
+      }).sort({ date: -1 }).lean();
+      if (priorDay && priorDay.endOdometer > 0) {
+        baselineOdo = priorDay.endOdometer;
+      }
+    }
+
+    // 3. Fallback to startOdometer of today if already recorded
+    const existingToday = await DailyUsage.findOne({ deviceKey, date: today }).lean();
+    if (!baselineOdo && existingToday && existingToday.startOdometer > 0) {
+      baselineOdo = existingToday.startOdometer;
+    }
+
+    if (baselineOdo && baselineOdo > 0) {
+      const odoDiff = b.odometer_km - baselineOdo;
+      if (odoDiff >= 0 && odoDiff <= 300) {
+        reliableTodayDistance = Number(odoDiff.toFixed(1));
+      } else {
+        // Difference > 300km is impossible on a single day, or negative roll. Keep existing today distance.
+        reliableTodayDistance = existingToday?.distanceKm ?? 0;
+      }
+    } else {
+      // First ever sync with valid odometer
+      reliableTodayDistance = 0;
+    }
+  }
+
+  // ─── 2. Daily Usage Persistence ──────────────────────────────────────────
   const dailySet = {
-    endOdometer: b.odometer_km,
     endSoc: b.soc_percent
   };
+  if (isValidOdo) {
+    dailySet.endOdometer = b.odometer_km;
+    if (reliableTodayDistance !== null) {
+      dailySet.distanceKm = reliableTodayDistance;
+    }
+  }
   if (b.avg_speed_kmh) dailySet.avgSpeedKmh = b.avg_speed_kmh;
   if (b.top_speed_kmh) dailySet.maxSpeedKmh = b.top_speed_kmh;
 
+  const socDrop = (prevSoc != null && b.soc_percent < prevSoc) ? (prevSoc - b.soc_percent) : 0;
   const dailyInc = {
-    distanceKm: distance,
-    socConsumed: socDrop,
-    syncCount: 1
+    syncCount: 1,
+    socConsumed: socDrop
   };
   if (b.ride_time_mins) dailyInc.rideTimeMins = b.ride_time_mins;
-  if (b.trip_km > 0) dailyInc.tripCount = 1;
 
   await DailyUsage.updateOne(
-    { deviceKey, date: dayKey(b.sync_timestamp) },
+    { deviceKey, date: today },
     {
       $inc: dailyInc,
       $set: dailySet,
-      $setOnInsert: { startOdometer: prevOdo, startSoc: prevSoc ?? b.soc_percent }
+      $setOnInsert: {
+        startOdometer: isValidOdo ? b.odometer_km : (scooter?.lastOdometer || 0),
+        startSoc: prevSoc ?? b.soc_percent
+      }
     },
     { upsert: true }
   );
 
-  // Scooter hardware & live state updates
+  // ─── 3. Scooter Hardware & Live State Updates ────────────────────────────
   const scooterSet = {
     lastSyncTimestamp: b.sync_timestamp,
-    lastOdometer: b.odometer_km,
     lastSoc: b.soc_percent,
     lastRangeKm: b.remaining_range_km ?? Math.round(b.soc_percent * 1.4),
     lastRidingMode: b.riding_mode || scooter?.lastRidingMode || 'City',
     appVersion: b.app_version
   };
+
+  // Only update lastOdometer if incoming reading is positive and valid
+  if (isValidOdo) {
+    scooterSet.lastOdometer = b.odometer_km;
+  }
 
   if (b.battery_voltage) scooterSet.batteryVoltage = b.battery_voltage;
   if (b.battery_current) scooterSet.batteryCurrent = b.battery_current;
@@ -61,36 +118,45 @@ async function applySync(deviceKey, b) {
   if (b.cell_delta_v) scooterSet.cellDeltaV = b.cell_delta_v;
   if (b.battery_soh) scooterSet.batterySoh = b.battery_soh;
 
-  // If a trip is reported during this sync, record it
-  if (b.trip_km > 0.1) {
-    const tripId = b.trip_id || `TRIP_${b.sync_timestamp}`;
-    const rideDuration = b.ride_time_mins || Math.round((b.trip_km / (b.avg_speed_kmh || 25)) * 60) || 15;
-    const efficiency = socDrop > 0 ? Number((b.trip_km / socDrop).toFixed(2)) : 1.94;
+  // ─── 4. Trip Processing (Reliable Odo Delta / Clamped) ───────────────────
+  // Since cluster trip meter is non-resettable, a ride's distance is calculated from odometer advance
+  if (isValidOdo && scooter?.lastOdometer && scooter.lastOdometer > 0) {
+    const tripDist = Number((b.odometer_km - scooter.lastOdometer).toFixed(1));
+    // Record trip only if distance is realistic (between 0.1 and 100 km)
+    if (tripDist >= 0.1 && tripDist <= 100) {
+      const tripId = b.trip_id || `TRIP_${b.sync_timestamp}`;
+      const rideDuration = b.ride_time_mins || Math.round((tripDist / (b.avg_speed_kmh || 25)) * 60) || 5;
+      const efficiency = socDrop > 0 ? Number((tripDist / socDrop).toFixed(2)) : 1.94;
 
-    const tripSnapshot = {
-      tripId,
-      distanceKm: b.trip_km,
-      durationMins: rideDuration,
-      avgSpeedKmh: b.avg_speed_kmh || 24,
-      topSpeedKmh: b.top_speed_kmh || 67,
-      batteryUsedPct: socDrop,
-      startSoc: prevSoc ?? b.soc_percent,
-      endSoc: b.soc_percent,
-      ridingMode: b.riding_mode || 'City',
-      efficiencyKmPerPct: efficiency,
-      energyConsumedKwh: Number((b.trip_km * 0.042).toFixed(2)),
-      regenRecapturedKwh: Number((b.trip_km * 0.007).toFixed(2)),
-      endTime: new Date(b.sync_timestamp)
-    };
+      const tripSnapshot = {
+        tripId,
+        distanceKm: tripDist,
+        durationMins: rideDuration,
+        avgSpeedKmh: b.avg_speed_kmh || 24,
+        topSpeedKmh: b.top_speed_kmh || 67,
+        batteryUsedPct: socDrop,
+        startSoc: prevSoc ?? b.soc_percent,
+        endSoc: b.soc_percent,
+        ridingMode: b.riding_mode || 'City',
+        efficiencyKmPerPct: efficiency,
+        energyConsumedKwh: Number((tripDist * 0.042).toFixed(2)),
+        regenRecapturedKwh: Number((tripDist * 0.007).toFixed(2)),
+        endTime: new Date(b.sync_timestamp)
+      };
 
-    scooterSet.lastTrip = tripSnapshot;
+      scooterSet.lastTrip = tripSnapshot;
 
-    // Persist to Trip collection
-    await Trip.updateOne(
-      { deviceKey, tripId },
-      { $setOnInsert: { deviceKey, ...tripSnapshot, startTime: new Date(b.sync_timestamp - rideDuration * 60000) } },
-      { upsert: true }
-    ).catch(() => {});
+      await Trip.updateOne(
+        { deviceKey, tripId },
+        { $setOnInsert: { deviceKey, ...tripSnapshot, startTime: new Date(b.sync_timestamp - rideDuration * 60000) } },
+        { upsert: true }
+      ).catch(() => {});
+
+      await DailyUsage.updateOne(
+        { deviceKey, date: today },
+        { $inc: { tripCount: 1 } }
+      ).catch(() => {});
+    }
   }
 
   await Scooter.updateOne(

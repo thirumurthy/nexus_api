@@ -44,8 +44,36 @@ async function buildInsights(deviceKey, deviceId, now = Date.now()) {
 
   const monthKm = monthlyAgg[0]?.km || 0;
   const daysActive = monthlyAgg[0]?.days || 0;
-  const todayKm = daily?.distanceKm || 0;
-  const yesterdayKm = yesterdayDaily?.distanceKm || 0;
+
+  // Reliable Today's Distance (Today Odometer - Yesterday Odometer)
+  let todayKm = daily?.distanceKm || 0;
+  const currentOdo = scooter?.lastOdometer || 0;
+  const yesterdayOdo = (yesterdayDaily && yesterdayDaily.endOdometer > 0) ? yesterdayDaily.endOdometer : null;
+
+  if (currentOdo > 0 && yesterdayOdo && yesterdayOdo > 0) {
+    const odoDiff = Number((currentOdo - yesterdayOdo).toFixed(1));
+    if (odoDiff >= 0 && odoDiff <= 300) {
+      todayKm = odoDiff;
+    }
+  } else if (currentOdo > 0 && daily?.startOdometer && daily.startOdometer > 0) {
+    const odoDiff = Number((currentOdo - daily.startOdometer).toFixed(1));
+    if (odoDiff >= 0 && odoDiff <= 300) {
+      todayKm = odoDiff;
+    }
+  } else if (todayKm > 300) {
+    todayKm = 0;
+  }
+
+  let yesterdayKm = yesterdayDaily?.distanceKm || 0;
+  if (yesterdayKm > 300) {
+    // Sanitize impossible historical spikes
+    if (yesterdayDaily?.endOdometer > 0 && yesterdayDaily?.startOdometer > 0) {
+      const yDiff = Number((yesterdayDaily.endOdometer - yesterdayDaily.startOdometer).toFixed(1));
+      yesterdayKm = (yDiff >= 0 && yDiff <= 300) ? yDiff : 0;
+    } else {
+      yesterdayKm = 0;
+    }
+  }
 
   // Comparison vs yesterday
   let vsYesterdayPct = 0;
