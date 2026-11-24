@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -19,6 +20,15 @@ app.use(
 
 app.use(cors());
 app.use(express.json({ limit: '20kb' }));
+
+// Serve static assets (brochures, images, docs) from /assets
+app.use(
+  '/assets',
+  express.static(path.join(__dirname, '../public/assets'), {
+    maxAge: '1d',
+    fallthrough: true
+  })
+);
 
 // Serve Dashboard UI directly on /admin and /dashboard
 app.get(['/admin', '/dashboard'], admin.renderDashboard);
