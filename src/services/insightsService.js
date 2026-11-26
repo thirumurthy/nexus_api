@@ -2,6 +2,7 @@ const env = require('../config/env');
 const Scooter = require('../models/Scooter');
 const DailyUsage = require('../models/DailyUsage');
 const fallbackEngine = require('../ai/providers/fallbackEngine');
+const { buildMaintenanceReport } = require('./maintenanceService');
 const { dayKey, monthKey, daysAgoKey } = require('../utils/date');
 
 const round = (n, d = 1) => {
@@ -216,6 +217,9 @@ async function buildInsights(deviceKey, deviceId, now = Date.now()) {
       anti_theft_enabled: scooter?.antiTheftEnabled ?? true,
       last_location: scooter?.lastKnownLocation
     },
+
+    // Official Ampere Maintenance Timeline & Care Matrix
+    maintenance: buildMaintenanceReport(odometer),
 
     // Legacy fields preserved for backward compatibility
     insights: {

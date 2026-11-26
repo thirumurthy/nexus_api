@@ -44,6 +44,7 @@ router.use('/scooter', apiKey);
 router.post('/scooter/sync', sync);
 router.get('/scooter/:deviceId/live', scooter.live);
 router.get('/scooter/:deviceId/insights', scooter.insights);
+router.get('/scooter/:deviceId/maintenance', scooter.maintenance);
 
 // Trips & Cadence Trends (Trips Tab)
 router.get('/scooter/:deviceId/cadence', scooter.cadence);

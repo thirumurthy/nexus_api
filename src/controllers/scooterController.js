@@ -11,6 +11,7 @@ const {
 const { toDeviceKey } = require('../utils/hash');
 const { daysAgoKey, dayKey } = require('../utils/date');
 const { buildInsights } = require('../services/insightsService');
+const { buildMaintenanceReport } = require('../services/maintenanceService');
 
 const round1 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 10) / 10;
 
@@ -76,6 +77,27 @@ exports.insights = async (req, res, next) => {
     const ctx = await resolve(req, res);
     if (!ctx) return;
     res.json(await buildInsights(ctx.deviceKey, ctx.deviceId));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/scooter/:deviceId/maintenance -> Official Ampere Service Timeline & Care Matrix
+exports.maintenance = async (req, res, next) => {
+  try {
+    const ctx = await resolve(req, res);
+    if (!ctx) return;
+
+    const scooter = await Scooter.findOne({ deviceKey: ctx.deviceKey }).lean();
+    const currentOdo = scooter?.lastOdometer || 0;
+    const report = buildMaintenanceReport(currentOdo);
+
+    res.json({
+      status: 'success',
+      device_id: ctx.deviceId,
+      scooter_name: scooter?.scooterName || 'Ampere Nexus EX',
+      ...report
+    });
   } catch (err) {
     next(err);
   }
