@@ -5,7 +5,7 @@ const Trip = require('../models/Trip');
 const fallbackEngine = require('../ai/providers/fallbackEngine');
 const { buildMaintenanceReport } = require('./maintenanceService');
 const { dayKey, monthKey, daysAgoKey } = require('../utils/date');
-const { inferTripMetadata } = require('../utils/tripHelper');
+const { inferTripMetadata, clusterRawTrips } = require('../utils/tripHelper');
 const { getDynamicVin } = require('../utils/deviceResolver');
 
 const round = (n, d = 1) => {
@@ -44,7 +44,13 @@ async function buildInsights(deviceKey, deviceId, now = Date.now()) {
       { $match: { deviceKey, date: { $gte: daysAgoKey(now, 30) } } },
       { $group: { _id: null, km: { $sum: '$distanceKm' }, soc: { $sum: '$socConsumed' } } }
     ]),
-    Trip.find({ deviceKey }).sort({ endTime: -1 }).limit(10).lean(),
+    Trip.find({
+      deviceKey,
+      $or: [
+        { startTime: { $gte: new Date(now - 7 * 86400000) } },
+        { endTime: { $gte: new Date(now - 7 * 86400000) } }
+      ]
+    }).sort({ endTime: -1 }).limit(100).lean(),
     DailyUsage.find({ deviceKey }).sort({ date: -1 }).limit(7).lean()
   ]);
 
@@ -141,35 +147,13 @@ async function buildInsights(deviceKey, deviceId, now = Date.now()) {
     aiTip = 'High-mileage commute today. Consider recharging up to 80-90% overnight to preserve battery longevity.';
   }
 
-  // ─── Format or Synthesize Real Recent Trips (NO Fake Location Names) ───────
+  // ─── Intelligently Clustered Recent Trips (1 Week, Charge-Aware) ────────
   let recentTrips = [];
   if (recentTripsRaw && recentTripsRaw.length > 0) {
-    recentTrips = recentTripsRaw.map((t) => {
-      const meta = inferTripMetadata(t, new Date(now));
-      return {
-        trip_id: t.tripId,
-        title: meta.title,
-        tag: meta.tag,
-        session_summary: meta.sessionSummary,
-        distance_km: round(t.distanceKm),
-        duration_mins: t.durationMins || Math.round((t.distanceKm / (t.avgSpeedKmh || 25)) * 60) || 15,
-        avg_speed_kmh: t.avgSpeedKmh || 24,
-        top_speed_kmh: t.topSpeedKmh || 55,
-        battery_used_pct: round(t.batteryUsedPct || 0),
-        start_soc: t.startSoc,
-        end_soc: t.endSoc,
-        riding_mode: t.ridingMode || 'City',
-        efficiency_km_per_pct: round(t.efficiencyKmPerPct || 1.94, 2),
-        energy_consumed_kwh: round(t.energyConsumedKwh || t.distanceKm * 0.038, 2),
-        regen_recaptured_kwh: round(t.regenRecapturedKwh || t.distanceKm * 0.006, 2),
-        money_saved_inr: meta.moneySavedInr,
-        co2_saved_kg: meta.co2SavedKg,
-        start_time: t.startTime,
-        end_time: t.endTime,
-        ai_critique: t.aiCritique || ''
-      };
-    });
-  } else if (recentDailyLogs && recentDailyLogs.length > 0) {
+    recentTrips = clusterRawTrips(recentTripsRaw, now);
+  }
+  
+  if (recentTrips.length === 0 && recentDailyLogs && recentDailyLogs.length > 0) {
     recentTrips = recentDailyLogs
       .filter((d) => d.distanceKm > 0.2)
       .slice(0, 5)

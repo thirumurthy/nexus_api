@@ -3,7 +3,7 @@ const Trip = require('../models/Trip');
 const aiCoachService = require('../ai/aiCoachService');
 const { tripCreateSchema } = require('../middleware/validate');
 const { resolveDevice: resolve } = require('../utils/deviceResolver');
-const { inferTripMetadata } = require('../utils/tripHelper');
+const { inferTripMetadata, clusterRawTrips } = require('../utils/tripHelper');
 
 const round1 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 10) / 10;
 const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
@@ -18,65 +18,25 @@ exports.listTrips = async (req, res, next) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
     const skip = (page - 1) * limit;
 
-    const [trips, totalCount, scooter] = await Promise.all([
-      Trip.find({ deviceKey: ctx.deviceKey })
+    const [rawTrips, scooter] = await Promise.all([
+      Trip.find({
+        deviceKey: ctx.deviceKey,
+        $or: [
+          { startTime: { $gte: new Date(Date.now() - 7 * 86400000) } },
+          { endTime: { $gte: new Date(Date.now() - 7 * 86400000) } }
+        ]
+      })
         .sort({ endTime: -1 })
-        .skip(skip)
-        .limit(limit)
+        .limit(100)
         .lean(),
-      Trip.countDocuments({ deviceKey: ctx.deviceKey }),
       Scooter.findOne({ deviceKey: ctx.deviceKey }).lean()
     ]);
 
-    const latestRaw = trips[0] || scooter?.lastTrip || null;
-    let latestSpotlight = null;
-    if (latestRaw) {
-      const meta = inferTripMetadata(latestRaw);
-      latestSpotlight = {
-        trip_id: latestRaw.tripId,
-        title: meta.title,
-        tag: meta.tag,
-        session_summary: meta.sessionSummary,
-        distance_km: round1(latestRaw.distanceKm),
-        duration_mins: latestRaw.durationMins,
-        top_speed_kmh: latestRaw.topSpeedKmh,
-        avg_speed_kmh: latestRaw.avgSpeedKmh,
-        efficiency_km_per_pct: round2(latestRaw.efficiencyKmPerPct || 1.94),
-        battery_used_pct: round1(latestRaw.batteryUsedPct || 0),
-        start_soc: latestRaw.startSoc,
-        end_soc: latestRaw.endSoc,
-        riding_mode: latestRaw.ridingMode || 'City',
-        money_saved_inr: meta.moneySavedInr,
-        co2_saved_kg: meta.co2SavedKg,
-        completed_at: latestRaw.endTime
-      };
-    }
+    const clustered = clusterRawTrips(rawTrips, Date.now());
+    const totalCount = clustered.length;
+    const paginatedTrips = clustered.slice(skip, skip + limit);
 
-    const formattedTrips = trips.map((t) => {
-      const meta = inferTripMetadata(t);
-      return {
-        trip_id: t.tripId,
-        title: meta.title,
-        tag: meta.tag,
-        session_summary: meta.sessionSummary,
-        distance_km: round1(t.distanceKm),
-        duration_mins: t.durationMins,
-        avg_speed_kmh: t.avgSpeedKmh,
-        top_speed_kmh: t.topSpeedKmh,
-        battery_used_pct: round1(t.batteryUsedPct),
-        start_soc: t.startSoc,
-        end_soc: t.endSoc,
-        riding_mode: t.ridingMode,
-        efficiency_km_per_pct: round2(t.efficiencyKmPerPct),
-        energy_consumed_kwh: round2(t.energyConsumedKwh),
-        regen_recaptured_kwh: round2(t.regenRecapturedKwh),
-        money_saved_inr: meta.moneySavedInr,
-        co2_saved_kg: meta.co2SavedKg,
-        start_time: t.startTime,
-        end_time: t.endTime,
-        ai_critique: t.aiCritique
-      };
-    });
+    const latestSpotlight = paginatedTrips[0] || null;
 
     res.json({
       status: 'success',
@@ -87,9 +47,9 @@ exports.listTrips = async (req, res, next) => {
         page,
         limit,
         total_trips: totalCount,
-        has_more: skip + trips.length < totalCount
+        has_more: skip + paginatedTrips.length < totalCount
       },
-      trips: formattedTrips
+      trips: paginatedTrips
     });
   } catch (err) {
     next(err);
