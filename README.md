@@ -1,15 +1,29 @@
 # Nexus Pulse EV — Scooter Sync & Fleet Telemetry API
 
-Express + MongoDB (Mongoose) REST API for the **Ampere Nexus EV Ecosystem (EX v4.2 / 7" TFT Cluster)**, based on the **Nexus Pulse Cyber-Automotive** design and BLE technical specification.
+> **⚠️ EDUCATIONAL & RESEARCH STUDY ONLY**  
+> This backend service was built strictly for **educational purposes, reverse engineering (REA) telemetry analysis, and AI model orchestration research**. It is an independent, non-commercial proof-of-concept exploring cloud telemetry ingestion, multi-provider LLM benchmarking (Gemini, Mistral, Groq, NVIDIA NIM), and automotive data analytics.  
+> **It is NOT an official API, is NOT affiliated with any vehicle manufacturer, and is NOT intended for commercial deployment.**
 
-Includes:
-- **Interactive Multi-Tab Dashboard & Admin Hub** (`/admin`)
-- **Swappable AI Provider Engine** (Groq, Mistral, NVIDIA NIM, Google AI / Gemini, OpenRouter, Cohere, Ollama, and local physics fallback)
-- **Stitch Revamp Telemetry**: Hero HUD, Trips & Cadence trends (3D/7D/30D/1Y), LFP 16-cell diagnostics matrix, and vehicle remote controls.
+---
+
+## 🔬 Educational Purpose, REA & AI Learning Testbed
+
+This backend was built to explore cloud-scale automotive telemetry ingestion and modern AI orchestration:
+
+### 1. Reverse Engineering (REA) Telemetry Ingestion
+- **Protocol Decoding & Normalization**: Studying the architectural patterns needed to reliably ingest raw, decompiled IoT vehicle telemetry packets over high-throughput REST and WebSocket connections.
+- **Battery & Telemetry Matrix Reconstruction**: Designing schema normalization pipelines for 16-cell LFP battery balance matrixes, odometer deltas, and energy dissipation calculations.
+- **Device ID Privacy & Isolation**: Using cryptographic salting and hashing (`toDeviceKey`), ensuring multi-scooter isolation without storing plain-text hardware identifiers.
+
+### 2. Multi-Provider AI Engine & Benchmark Lab
+- **Swappable AI Architecture**: A unified abstraction layer allowing instant runtime switching between Google Gemini, Mistral AI, Groq Cloud, NVIDIA NIM, OpenRouter, Cohere, and local Ollama instances.
+- **Neural Copilot & Dynamic Insights**: Benchmarking LLM latency, response accuracy, and cost when generating contextual EV driving critiques and maintenance forecasting from live telemetry.
+- **Zero-Downtime Deterministic Fallback**: Automatic failover to local mathematical EV physics models when cloud AI providers exceed rate limits.
 
 ---
 
 ## 🏗️ Project Structure
+
 ```
 api/index.js              Vercel serverless entry
 src/app.js                Express app & middleware
@@ -68,7 +82,7 @@ The API features a dynamic AI adapter with runtime switching and auto-fallback c
 
 ---
 
-## 📡 Complete REST API Endpoints
+## 📡 REST API Overview
 
 ### 1. AI & Copilot APIs
 | Method | Path | Description |
@@ -106,12 +120,13 @@ The API features a dynamic AI adapter with runtime switching and auto-fallback c
 | `GET` | `/api/scooter/:deviceId/diagnostics` | LFP 16-cell voltage delta matrix (51.2V, cell delta, SOH) & MCU status |
 | `POST` | `/api/scooter/:deviceId/diagnostics/scan` | Trigger full diagnostic scan & cell balancing calibration |
 
-### 5. Settings & Preferences (Settings Tab)
+### 5. Settings & Maintenance APIs
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/scooter/:deviceId/settings` | Riding modes, regen strength, hill hold, reverse assist toggles |
 | `PATCH` | `/api/scooter/:deviceId/settings` | Update rider preferences & cluster configuration |
 | `GET` | `/api/scooter/:deviceId/export?format=json|csv` | Export ride data in CSV or JSON |
+| `GET` | `/api/scooter/:deviceId/maintenance` | Official maintenance checklist & service schedule roadmap |
 
 ### 6. Admin & Fleet Insights APIs
 | Method | Path | Description |
@@ -156,3 +171,17 @@ http://localhost:3000/admin
    - `API_KEY`: (Optional) Secret key to protect endpoints with `x-api-key` header
 4. In MongoDB Atlas **Network Access**, ensure `0.0.0.0/0` is allowed (Vercel serverless IPs are dynamic).
 5. Deploy and visit `https://<your-project>.vercel.app/admin`.
+
+---
+
+## ⚠️ Legal Notice & Disclaimers
+
+1. **Non-Affiliation**: This backend service has **no affiliation, association, authorization, endorsement by, or any official connection with Greaves Electric Mobility Ltd., Ampere Vehicles, or any of their subsidiaries or affiliates**.
+2. **Trademarks**: The names "Ampere", "Nexus", and related trademarks, trade names, emblems, and images are registered trademarks of their respective owners. Their mention in this repository is strictly for identification, nominative reference, and educational research purposes under fair use.
+3. **Strictly Non-Commercial**: This repository is developed solely for academic and educational learning regarding EV telemetry architectures, reverse engineering (REA) concepts, and AI provider integrations. It is not intended for commercial usage.
+
+---
+
+## 📄 License
+
+MIT License. See [LICENSE](LICENSE) for details.
