@@ -56,6 +56,9 @@ const settingsUpdateSchema = z.object({
 
 const tripCreateSchema = z.object({
   trip_id: z.string().min(3).max(100).optional(),
+  title: z.string().max(100).optional(),
+  tag: z.string().max(50).optional(),
+  session_summary: z.string().max(200).optional(),
   start_time: z.number().int().positive().optional(),
   end_time: z.number().int().positive().optional(),
   distance_km: z.number().min(0.01).max(2000),

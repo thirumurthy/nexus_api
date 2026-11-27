@@ -6,6 +6,7 @@ const { syncSchema } = require('../middleware/validate');
 const { toDeviceKey } = require('../utils/hash');
 const { dayKey, daysAgoKey } = require('../utils/date');
 const { buildInsights } = require('../services/insightsService');
+const { inferTripMetadata } = require('../utils/tripHelper');
 
 async function applySync(deviceKey, b) {
   const scooter = await Scooter.findOne({ deviceKey }).lean();
@@ -128,8 +129,23 @@ async function applySync(deviceKey, b) {
       const rideDuration = b.ride_time_mins || Math.round((tripDist / (b.avg_speed_kmh || 25)) * 60) || 5;
       const efficiency = socDrop > 0 ? Number((tripDist / socDrop).toFixed(2)) : 1.94;
 
+      const startTime = new Date(b.sync_timestamp - rideDuration * 60000);
+      const meta = inferTripMetadata({
+        startTime,
+        endTime: new Date(b.sync_timestamp),
+        durationMins: rideDuration,
+        distanceKm: tripDist,
+        avgSpeedKmh: b.avg_speed_kmh || 24,
+        topSpeedKmh: b.top_speed_kmh || 67,
+        ridingMode: b.riding_mode || 'City',
+        efficiencyKmPerPct: efficiency
+      });
+
       const tripSnapshot = {
         tripId,
+        title: meta.title,
+        tag: meta.tag,
+        sessionSummary: meta.sessionSummary,
         distanceKm: tripDist,
         durationMins: rideDuration,
         avgSpeedKmh: b.avg_speed_kmh || 24,
@@ -141,6 +157,9 @@ async function applySync(deviceKey, b) {
         efficiencyKmPerPct: efficiency,
         energyConsumedKwh: Number((tripDist * 0.042).toFixed(2)),
         regenRecapturedKwh: Number((tripDist * 0.007).toFixed(2)),
+        moneySavedInr: meta.moneySavedInr,
+        co2SavedKg: meta.co2SavedKg,
+        startTime,
         endTime: new Date(b.sync_timestamp)
       };
 
@@ -148,7 +167,7 @@ async function applySync(deviceKey, b) {
 
       await Trip.updateOne(
         { deviceKey, tripId },
-        { $setOnInsert: { deviceKey, ...tripSnapshot, startTime: new Date(b.sync_timestamp - rideDuration * 60000) } },
+        { $setOnInsert: { deviceKey, ...tripSnapshot } },
         { upsert: true }
       ).catch(() => {});
 
