@@ -4,7 +4,7 @@ const scooterSchema = new Schema(
   {
     deviceKey: { type: String, required: true, unique: true, index: true },
     name: { type: String, default: '', trim: true },
-    vin: { type: String, default: 'NEX_B9ABF' },
+    vin: { type: String, default: '' },
     modelName: { type: String, default: 'Ampere Nexus EX' },
     firmwareVersion: { type: String, default: 'EX v4.2' },
     tftFirmwareVersion: { type: String, default: '4.2.1' },

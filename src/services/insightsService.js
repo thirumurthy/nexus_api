@@ -6,6 +6,7 @@ const fallbackEngine = require('../ai/providers/fallbackEngine');
 const { buildMaintenanceReport } = require('./maintenanceService');
 const { dayKey, monthKey, daysAgoKey } = require('../utils/date');
 const { inferTripMetadata } = require('../utils/tripHelper');
+const { getDynamicVin } = require('../utils/deviceResolver');
 
 const round = (n, d = 1) => {
   const f = 10 ** d;
@@ -290,7 +291,7 @@ async function buildInsights(deviceKey, deviceId, now = Date.now()) {
 
     // Vehicle hardware & control states
     vehicle_state: {
-      vin: scooter?.vin || 'NEX_B9ABF',
+      vin: scooter?.vin || getDynamicVin(deviceId, deviceKey),
       model_name: scooter?.modelName || 'Ampere Nexus EX',
       firmware_version: scooter?.firmwareVersion || 'EX v4.2',
       tft_firmware_version: scooter?.tftFirmwareVersion || '4.2.1',

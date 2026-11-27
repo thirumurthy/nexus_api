@@ -6,18 +6,7 @@ const {
   aiProviderSwitchSchema,
   aiTestSchema
 } = require('../middleware/validate');
-const { toDeviceKey } = require('../utils/hash');
-
-async function resolve(req, res) {
-  const deviceId = decodeURIComponent(req.params.deviceId);
-  const deviceKey = toDeviceKey(deviceId);
-  const exists = await Scooter.exists({ deviceKey });
-  if (!exists) {
-    res.status(404).json({ status: 'error', message: 'Scooter not found. Sync once first.' });
-    return null;
-  }
-  return { deviceId, deviceKey };
-}
+const { resolveDevice: resolve } = require('../utils/deviceResolver');
 
 // GET /api/ai/providers  -> List all available AI providers, configuration status & active model
 exports.listProviders = (req, res) => {

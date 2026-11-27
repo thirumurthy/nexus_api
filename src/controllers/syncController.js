@@ -7,6 +7,7 @@ const { toDeviceKey } = require('../utils/hash');
 const { dayKey, daysAgoKey } = require('../utils/date');
 const { buildInsights } = require('../services/insightsService');
 const { inferTripMetadata } = require('../utils/tripHelper');
+const { getDynamicVin } = require('../utils/deviceResolver');
 
 async function applySync(deviceKey, b) {
   const scooter = await Scooter.findOne({ deviceKey }).lean();
@@ -118,6 +119,7 @@ async function applySync(deviceKey, b) {
   if (b.battery_temp) scooterSet.batteryTemp = b.battery_temp;
   if (b.cell_delta_v) scooterSet.cellDeltaV = b.cell_delta_v;
   if (b.battery_soh) scooterSet.batterySoh = b.battery_soh;
+  if (!scooter?.vin) scooterSet.vin = getDynamicVin(b.device_id, deviceKey);
 
   // ─── 4. Trip Processing (Reliable Odo Delta / Clamped) ───────────────────
   // Since cluster trip meter is non-resettable, a ride's distance is calculated from odometer advance

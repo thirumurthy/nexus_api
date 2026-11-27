@@ -7,6 +7,7 @@ const SyncLog = require('../models/SyncLog');
 const Trip = require('../models/Trip');
 const { buildInsights } = require('../services/insightsService');
 const { dayKey, daysAgoKey } = require('../utils/date');
+const { getDynamicVin } = require('../utils/deviceResolver');
 
 const round = (n, d = 1) => {
   const f = 10 ** d;
@@ -189,7 +190,7 @@ exports.listScooters = async (req, res, next) => {
       scooters: scooters.map((s) => ({
         device_key: s.deviceKey,
         name: s.name || '',
-        vin: s.vin || 'NEX_B9ABF',
+        vin: s.vin || getDynamicVin(s.name, s.deviceKey),
         model_name: s.modelName || 'Ampere Nexus EX',
         eco_score: s.ecoScore || 95,
         battery_soh: s.batterySoh || 98,
@@ -230,7 +231,7 @@ exports.scooterDetail = async (req, res, next) => {
       scooter: {
         device_key: scooter.deviceKey,
         name: scooter.name || '',
-        vin: scooter.vin || 'NEX_B9ABF',
+        vin: scooter.vin || getDynamicVin(scooter.name, scooter.deviceKey),
         model_name: scooter.modelName || 'Ampere Nexus EX',
         firmware_version: scooter.firmwareVersion || 'EX v4.2',
         is_locked: scooter.isLocked ?? false,

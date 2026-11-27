@@ -8,23 +8,12 @@ const {
   controlSchema,
   settingsUpdateSchema
 } = require('../middleware/validate');
-const { toDeviceKey } = require('../utils/hash');
+const { resolveDevice: resolve, getDynamicVin } = require('../utils/deviceResolver');
 const { daysAgoKey, dayKey } = require('../utils/date');
 const { buildInsights } = require('../services/insightsService');
 const { buildMaintenanceReport } = require('../services/maintenanceService');
 
 const round1 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 10) / 10;
-
-async function resolve(req, res) {
-  const deviceId = decodeURIComponent(req.params.deviceId);
-  const deviceKey = toDeviceKey(deviceId);
-  const exists = await Scooter.exists({ deviceKey });
-  if (!exists) {
-    res.status(404).json({ status: 'error', message: 'Scooter not found. Sync once first.' });
-    return null;
-  }
-  return { deviceId, deviceKey };
-}
 
 // GET /api/scooter/:deviceId/live  -> Live HUD snapshot for Home Tab
 exports.live = async (req, res, next) => {
@@ -44,7 +33,7 @@ exports.live = async (req, res, next) => {
     res.json({
       status: 'success',
       device_id: ctx.deviceId,
-      scooter_tag: scooter?.vin || 'NEX_B9ABF',
+      scooter_tag: scooter?.vin || getDynamicVin(ctx.deviceId, ctx.deviceKey),
       firmware_release: scooter?.firmwareVersion || 'EX v4.2',
       connection_state: 'CONNECTED',
       is_locked: scooter?.isLocked ?? false,
@@ -339,7 +328,7 @@ exports.diagnostics = async (req, res, next) => {
       status: 'success',
       device_id: ctx.deviceId,
       scooter_model: scooter?.modelName || 'Ampere Nexus EX',
-      vin: scooter?.vin || 'NEX_B9ABF',
+      vin: scooter?.vin || getDynamicVin(ctx.deviceId, ctx.deviceKey),
       lfp_battery_matrix: {
         capacity: '3.3 kWh • 51.2V',
         pack_voltage: scooter?.batteryVoltage || 51.2,
@@ -434,7 +423,7 @@ exports.getSettings = async (req, res, next) => {
       rider_profile: {
         name: scooter?.name || 'Nexus Pilot',
         rider_id: `AMP-${ctx.deviceKey.slice(0, 6).toUpperCase()}`,
-        vin: scooter?.vin || 'NEX_B9ABF'
+        vin: scooter?.vin || getDynamicVin(ctx.deviceId, ctx.deviceKey)
       },
       preferences: {
         default_riding_mode: scooter?.defaultRidingMode || 'City',

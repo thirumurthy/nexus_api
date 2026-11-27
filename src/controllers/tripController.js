@@ -2,22 +2,11 @@ const Scooter = require('../models/Scooter');
 const Trip = require('../models/Trip');
 const aiCoachService = require('../ai/aiCoachService');
 const { tripCreateSchema } = require('../middleware/validate');
-const { toDeviceKey } = require('../utils/hash');
+const { resolveDevice: resolve } = require('../utils/deviceResolver');
 const { inferTripMetadata } = require('../utils/tripHelper');
 
 const round1 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 10) / 10;
 const round2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
-
-async function resolve(req, res) {
-  const deviceId = decodeURIComponent(req.params.deviceId);
-  const deviceKey = toDeviceKey(deviceId);
-  const exists = await Scooter.exists({ deviceKey });
-  if (!exists) {
-    res.status(404).json({ status: 'error', message: 'Scooter not found. Sync once first.' });
-    return null;
-  }
-  return { deviceId, deviceKey };
-}
 
 // GET /api/scooter/:deviceId/trips  -> List recent trips + latest completed ride spotlight
 exports.listTrips = async (req, res, next) => {
