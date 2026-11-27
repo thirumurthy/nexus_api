@@ -220,7 +220,11 @@ async function buildInsights(deviceKey, deviceId, now = Date.now()) {
       distance_today_km: round(todayKm),
       avg_speed_kmh: daily?.avgSpeedKmh || 24,
       ride_time_mins: daily?.rideTimeMins || 38,
-      battery_used_pct: daily?.socConsumed || 9.6,
+      battery_used_pct: daily?.socConsumed || 0,
+      today_energy_kwh: Number(((daily?.socConsumed || 0) * 0.033).toFixed(2)),
+      yesterday_distance_km: round(yesterdayKm),
+      yesterday_battery_used_pct: Math.round(yesterdayDaily?.socConsumed || 0),
+      yesterday_energy_kwh: Number(((yesterdayDaily?.socConsumed || 0) * 0.033).toFixed(2)),
       vs_yesterday_pct: vsYesterdayPct,
       daily_goal_km: goalKm,
       goal_progress_pct: goalProgressPct
@@ -230,9 +234,19 @@ async function buildInsights(deviceKey, deviceId, now = Date.now()) {
       date: today,
       distance_km: round(todayKm),
       soc_consumed: Math.round(daily?.socConsumed || 0),
+      energy_kwh: Number(((daily?.socConsumed || 0) * 0.033).toFixed(2)),
       avg_speed_kmh: daily?.avgSpeedKmh || 24,
       ride_time_mins: daily?.rideTimeMins || 0,
       trip_count: daily?.tripCount || 0
+    },
+
+    yesterday_usage: {
+      date: yesterday,
+      distance_km: round(yesterdayKm),
+      soc_consumed: Math.round(yesterdayDaily?.socConsumed || 0),
+      energy_kwh: Number(((yesterdayDaily?.socConsumed || 0) * 0.033).toFixed(2)),
+      avg_speed_kmh: yesterdayDaily?.avgSpeedKmh || 24,
+      ride_time_mins: yesterdayDaily?.rideTimeMins || 0
     },
 
     monthly_usage: {

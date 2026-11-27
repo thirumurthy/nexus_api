@@ -133,6 +133,7 @@ exports.cadence = async (req, res, next) => {
 
     const dayNameMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     let totalKm = 0;
+    let totalSoc = 0;
     let daysWithRiding = 0;
 
     // Fill all dates in range even if 0 km
@@ -144,6 +145,7 @@ exports.cadence = async (req, res, next) => {
       const soc = match ? Math.round(match.socConsumed) : 0;
 
       totalKm += km;
+      totalSoc += soc;
       if (km > 0) daysWithRiding++;
 
       const dateObj = new Date(dKey);
@@ -151,11 +153,13 @@ exports.cadence = async (req, res, next) => {
         date: dKey,
         day_label: dayNameMap[dateObj.getUTCDay()],
         distance_km: km,
-        soc_consumed: soc
+        soc_consumed: soc,
+        energy_kwh: Number((soc * 0.033).toFixed(2))
       });
     }
 
     const avgKm = daysWithRiding > 0 ? round1(totalKm / daysWithRiding) : 0;
+    const avgSoc = daysWithRiding > 0 ? Math.round(totalSoc / daysWithRiding) : 0;
 
     res.json({
       status: 'success',
@@ -166,6 +170,9 @@ exports.cadence = async (req, res, next) => {
       aggregation: {
         total_distance_km: round1(totalKm),
         avg_daily_km: avgKm,
+        total_soc_consumed: Math.round(totalSoc),
+        avg_soc_consumed: avgSoc,
+        total_energy_kwh: Number((totalSoc * 0.033).toFixed(2)),
         active_days: daysWithRiding,
         trips_logged: tripAgg[0]?.count || rows.reduce((acc, r) => acc + (r.tripCount || (r.distanceKm > 0 ? 1 : 0)), 0)
       },
